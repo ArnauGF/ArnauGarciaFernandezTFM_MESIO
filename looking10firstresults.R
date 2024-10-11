@@ -1,15 +1,14 @@
 #setwd("/Users/arnaugarcia/Desktop/TFM_super")
-#load("results20.RData")
-setwd("G:/TFM")
+load("results60_sce2.RData")
 library(ggplot2)
 library(tidyr)
 
 #with ibs
-IBS_multi <- IBS_multi[1:10]
-dSL_cv_IBS <- dSL_cv_IBS[1:10]
-eSL_cv_IBS <- eSL_cv_IBS[1:10]
-IBS_multi_t <- IBS_multi_test[1:10]
-eSL_t_IBS <- eSL_test_IBS[1:10]
+IBS_multi <- IBS_multi[1:60]
+dSL_cv_IBS <- dSL_cv_IBS[1:60]
+eSL_cv_IBS <- eSL_cv_IBS[1:60]
+IBS_multi_t <- IBS_multi_test[1:60]
+eSL_t_IBS <- eSL_test_IBS[1:60]
 
 
 df <- data.frame(IBS_multi, IBS_multi_t, eSL_cv_IBS, eSL_t_IBS,  
@@ -28,11 +27,11 @@ ploty
 dev.off()
 
 #with epce
-EPCE_multi <- EPCE_multi[1:10]
-EPCE_multi_t <- EPCE_multi_test[1:10]
-dSL_cv_EPCE <- dSL_cv_EPCE[1:10]
-eSL_cv_EPCE <- eSL_cv_EPCE[1:10]
-eSL_t_EPCE <- eSL_test_EPCE[1:10]
+EPCE_multi <- EPCE_multi[1:60]
+EPCE_multi_t <- EPCE_multi_test[1:60]
+dSL_cv_EPCE <- dSL_cv_EPCE[1:60]
+eSL_cv_EPCE <- eSL_cv_EPCE[1:60]
+eSL_t_EPCE <- eSL_test_EPCE[1:60]
 
 df2 <- data.frame(EPCE_multi, EPCE_multi_t, eSL_cv_EPCE, eSL_t_EPCE,
                   dSL_cv_EPCE)
@@ -50,9 +49,8 @@ plottt
 dev.off()
 
 
-(sum(censoring_test[1:10])/10)/300
-(sum(censoring_train[1:10])/10)/300
-#on avg 34% of censoring
+(sum(censoring_test[1:60])/60)/300
+(sum(censoring_train[1:60])/60)/300
 
-# 40% of censoring
+# on avg 40% of censoring
 
