@@ -1132,7 +1132,7 @@ for(count in 1:num_dat){
   
   #SuperLearning with the library of models built with the univariate JM
   
-  CVdats <- create_folds(DF, V = 3, id_var = "id")
+  try(CVdats <- create_folds(DF, V = 3, id_var = "id"))
   
   fit_models <- function (data) {
     library("JMbayes2")
