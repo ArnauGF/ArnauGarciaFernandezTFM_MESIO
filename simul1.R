@@ -1205,62 +1205,62 @@ for(count in 1:num_dat){
   
   #hay que guardar solo los objetos que necesitamos yh no todo!!!!!!
   #si no pesa demasiado
-  if(count==1){
-    strr <- "results1iter_Scenario2BIS.RData"
-    save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
-         dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
-         IBS_multi_test, EPCE_multi_test, censoring_train,
-         censoring_test, file=strr)
-  }
-  if(count==2){
-    str1 <- "results2_Scenario2BIS.RData"
-    save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
-         dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
-         IBS_multi_test, EPCE_multi_test, censoring_train,
-         censoring_test, file=str1)
-  }
-  if(count==10){
-    str10 <- "results10_Scenario2BIS.RData"
+  #if(count==1){
+  #  strr <- "results1iter_Scenario2BIS.RData"
+  #   save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
+  #       dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
+  #       IBS_multi_test, EPCE_multi_test, censoring_train,
+  #       censoring_test, file=strr)
+  #}
+  #if(count==2){
+  #  str1 <- "results2_Scenario2BIS.RData"
+  #  save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
+  #       dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
+  #       IBS_multi_test, EPCE_multi_test, censoring_train,
+  #       censoring_test, file=str1)
+  #}
+  try(if(count==10){
+    str10 <- "results10_Scenario2_3.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
          censoring_test, file=str10)
-  }
-  if(count==20){
-    str20 <- "results20_sce2BIS.RData"
+  })
+  try(if(count==20){
+    str20 <- "results20_sce2_3.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
          censoring_test, file=str20)
-  }
-  if(count==30){
-    str30 <- "results30_sce2BIS.RData"
+  })
+  try(if(count==30){
+    str30 <- "results30_sce2_3.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
          censoring_test, file=str30)
-  }
-  if(count==40){
-    str40 <- "results40_sce2BIS.RData"
+  })
+  try(if(count==40){
+    str40 <- "results40_sce2_3.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
          censoring_test, file=str40)
-  }
-  if(count==50){
-    str50 <- "results50_sce2BIS.RData"
+  })
+  try(if(count==50){
+    str50 <- "results50_sce2_3.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
          censoring_test, file=str50)
-  }
-  if(count==60){
-    str60 <- "results60_sce2BIS.RData"
+  })
+  try(if(count==60){
+    str60 <- "results60_sce2_3.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
          censoring_test, file=str60)
-  }
+  })
   if(count==70){
     str70 <- "results70_sce2BIS.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
