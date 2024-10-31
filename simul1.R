@@ -1324,6 +1324,7 @@ IBS_univ <- EPCE_univ <- IBS_w <- EPCE_w <- matrix(nrow = num_dat, ncol = 5)
 IBS_univ_test <- EPCE_univ_test <- IBS_w_test <- 
   EPCE_w_test <- matrix(nrow = num_dat, ncol = 5)
 censoring_train <- censoring_test <- numeric(num_dat)
+checkTimes <- checkTimes2 <- matrix(nrow = num_dat, ncol = 300)
 disSL_epce <- disSL_ibs <- numeric(num_dat)
 count <- 0
 
@@ -1454,7 +1455,7 @@ for(count in 1:num_dat){
   
   
   # we simulate random effects
-  b3 <- mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(sqrt(D11_3), D12_3, D21_3, sqrt(D22_4))
+  b3 <- mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(sqrt(D11_3), D12_3, D21_3, sqrt(D22_3))
                                                    , nrow = 2))
   # linear predictor
   eta_y3 <- as.vector(X3 %*% betas3 + rowSums(Z3 * b3[DF$id, ]))
@@ -1600,6 +1601,9 @@ for(count in 1:num_dat){
   DF$event <- event[DF$id]
   DF <- DF[DF$time <= DF$Time, ]
   
+  ##saving true times
+  checkTimes[count, ] <- trueTimes
+  
   
   #######Test data##################
   W_test <- model.matrix(~ sex, data = DF_test[!duplicated(DF_test$id), ])
@@ -1654,6 +1658,9 @@ for(count in 1:num_dat){
     Root <- try(uniroot(invS, interval = c(1e-05, Up), i = i)$root, TRUE)
     trueTimes2[i] <- if (!inherits(Root, "try-error")) Root else 150
   }
+  
+  ##saving truetimes
+  checkTimes2[count, ] <- trueTimes2
   
   # we use random censoring:
   Ctimes <- rnorm(n, mean = 6.5, sd = 1)
