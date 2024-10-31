@@ -1385,9 +1385,12 @@ for(count in 1:num_dat){
   sigma1 <- 0.125 # errors sd
   D11_1 <- 1.0 # variance of random intercepts
   D22_1 <- 0.5 # variance of random slopes
+  D12_1 <- 0.00008
+  D21_1 <- 0.01478
   
   # we simulate random effects
-  b1 <- cbind(rnorm(n, sd = sqrt(D11_1)), rnorm(n, sd = sqrt(D22_1)))
+  b1 <-  mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(sqrt(D11_1), D12_1, D21_1, sqrt(D22_1))
+                                                    ,nrow = 2))
   # linear predictor
   eta_y1 <- as.vector(X1 %*% betas1 + rowSums(Z1 * b1[DF$id, ]))
   # we simulate normal longitudinal data
@@ -1398,7 +1401,8 @@ for(count in 1:num_dat){
   
   #Test data:
   # we simulate random effects
-  b1_test <- cbind(rnorm(n_test, sd = sqrt(D11_1)), rnorm(n_test, sd = sqrt(D22_1)))
+  b1_test <-  mvrnorm(n = n_test, mu = c(0,0), Sigma = matrix(c(sqrt(D11_1), D12_1, D21_1, sqrt(D22_1))
+                                                         , nrow = 2))
   # linear predictor
   eta_y1_test <- as.vector(X1_test %*% betas1 + rowSums(Z1_test * b1_test[DF_test$id, ]))
   # we simulate normal longitudinal data
@@ -1413,9 +1417,12 @@ for(count in 1:num_dat){
   sigma2 <- 0.25 # errors sd
   D11_2 <- 1.2 # variance of random intercepts
   D22_2 <- 0.25 # variance of random slopes
+  D12_2 <- 0.0054
+  D21_2 <- 0.0000987
   
   # we simulate random effects
-  b2 <- cbind(rnorm(n, sd = sqrt(D11_2)), rnorm(n, sd = sqrt(D22_2)))
+  b2 <- mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(sqrt(D11_2), D12_2, D21_2, sqrt(D22_2))
+                                                    ,nrow = 2))
   # linear predictor
   eta_y2 <- as.vector(X2 %*% betas2 + rowSums(Z2 * b2[DF$id, ]))
   # we simulate normal longitudinal data
@@ -1426,7 +1433,8 @@ for(count in 1:num_dat){
   
   ####Test data
   # we simulate random effects
-  b2_test <- cbind(rnorm(n_test, sd = sqrt(D11_2)), rnorm(n_test, sd = sqrt(D22_2)))
+  b2_test <-  mvrnorm(n = n_test, mu = c(0,0), Sigma = matrix(c(sqrt(D11_2), D12_2, D21_2, sqrt(D22_2))
+                                                         , nrow = 2))
   # linear predictor
   eta_y2_test <- as.vector(X2_test %*% betas2 + rowSums(Z2_test * b2[DF_test$id, ]))
   # we simulate normal longitudinal data
@@ -1441,21 +1449,24 @@ for(count in 1:num_dat){
   sigma3 <- 0.25 # errors sd
   D11_3 <- 0.15 # variance of random intercepts
   D22_3 <- 0.05 # variance of random slopes
+  D12_3 <- 0.0005
+  D21_3 <- 0.07
   
   
   # we simulate random effects
-  b3 <- cbind(rnorm(n, sd = sqrt(D11_3)), rnorm(n, sd = sqrt(D22_3)))
+  b3 <- mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(sqrt(D11_3), D12_3, D21_3, sqrt(D22_4))
+                                                   , nrow = 2))
   # linear predictor
   eta_y3 <- as.vector(X3 %*% betas3 + rowSums(Z3 * b3[DF$id, ]))
   # we simulate normal longitudinal data
   DF$y3 <- rnorm(n * K, mean = eta_y3, sd = sigma3)
   # we assume that values below 0 are not observed, and set equal to 0
-  #DF$ind3 <- as.numeric(DF$y3 < 0)
-  #DF$y3 <- pmax(DF$y3, 0)
+
   
   ########Test data
   # we simulate random effects
-  b3_test <- cbind(rnorm(n_test, sd = sqrt(D11_3)), rnorm(n_test, sd = sqrt(D22_3)))
+  b3_test <-  mvrnorm(n = n_test, mu = c(0,0), Sigma = matrix(c(sqrt(D11_3), D12_3, D21_3, sqrt(D22_3))
+                                                         , nrow = 2))
   # linear predictor
   eta_y3_test <- as.vector(X3_test %*% betas3 + rowSums(Z3_test * b3_test[DF_test$id, ]))
   # we simulate normal longitudinal data
@@ -1466,10 +1477,12 @@ for(count in 1:num_dat){
   betas4 <- c(0.01, 0.5, -0.31416) # fixed effects coefficients
   D11_4 <- 0.212 # variance of random intercepts
   D22_4 <- 0.0125 # variance of random slopes
-  
+  D12_4 <- 0.01879
+  D21_4 <- 0.0000333
   
   # we simulate random effects
-  b4 <- cbind(rnorm(n, sd = sqrt(D11_4)), rnorm(n, sd = sqrt(D22_4)))
+  b4 <- mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(sqrt(D11_4), D12_4, D21_4, sqrt(D22_4))
+                                                   , nrow = 2))
   # linear predictor
   eta_y4 <- as.vector(X4 %*% betas4 + rowSums(Z4 * b4[DF$id, ]))
   # mean of the binomial distribution
@@ -1479,7 +1492,8 @@ for(count in 1:num_dat){
   
   #####Test data
   # we simulate random effects
-  b4_test <- cbind(rnorm(n_test, sd = sqrt(D11_4)), rnorm(n_test, sd = sqrt(D22_4)))
+  b4_test <- mvrnorm(n = n_test, mu = c(0,0), Sigma = matrix(c(sqrt(D11_4), D12_4, D21_4, sqrt(D22_4))
+                                                        , nrow = 2))
   # linear predictor
   eta_y4_test <- as.vector(X4_test %*% betas4 + rowSums(Z4_test * b4_test[DF_test$id, ]))
   # mean of the binomial distribution
@@ -1508,7 +1522,7 @@ for(count in 1:num_dat){
   
   ####Test data
   # we simulate random effects
-  b5_test <- mvrnorm(n = n, mu = c(0,0), Sigma = matrix(c(D11_5, D12_5, D21_5, D22_5)
+  b5_test <- mvrnorm(n = n_test, mu = c(0,0), Sigma = matrix(c(D11_5, D12_5, D21_5, D22_5)
                                                         , nrow = 2))
   # linear predictor
   eta_y5_test <- as.vector(X5_test %*% betas5 + rowSums(Z5_test * b5_test[DF_test$id, ]))
@@ -1921,23 +1935,3 @@ for(count in 1:num_dat){
 
 
 
-library(MASS)
-# Mean vector
-mu <- c(0, 0)
-
-# Covariance matrix
-Sigma <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
-
-# Number of samples
-n <- 100
-
-# Generate multivariate normal values
-set.seed(123)  # for reproducibility
-data <- mvrnorm(n = n, mu = mu, Sigma = Sigma)
-
-# View the first few rows
-head(data)
-
-b5 <- cbind(rnorm(n, sd = sqrt(D11_5)), rnorm(n, sd = sqrt(D22_5)))
-
-head(b5)
