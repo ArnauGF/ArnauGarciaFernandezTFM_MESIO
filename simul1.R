@@ -1517,6 +1517,22 @@ checkTimes <- checkTimes2 <- matrix(nrow = num_dat, ncol = 300)
 disSL_epce <- disSL_ibs <- numeric(num_dat)
 count <- 0
 
+#####D matrix for the random effects:
+set.seed(12345)
+sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5))
+                 ,nrow = 10)
+
+### We start the loop for the simulation:
+
 for(count in 1:num_dat){
   ############################
   #We generate the dataset
@@ -1571,19 +1587,6 @@ for(count in 1:num_dat){
   
   #Simulate random effects
   #################################################
-  set.seed(12345)
-  sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5), runif(10, -0.005, 0.005),
-                     runif(1,0,1.5))
-                   ,nrow = 10)
-  
   b <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
   b_test <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
   
@@ -2004,7 +2007,7 @@ for(count in 1:num_dat){
   
   
   if(count==1){
-    strr <- "results1iter_Scenario1_28Oct.RData"
+    strr <- "results1iter_Scenario2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2012,7 +2015,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=strr)
   }
   if(count==2){
-    str1 <- "results2_Scenario1_28Oct.RData"
+    str1 <- "results2_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2020,7 +2023,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str1)
   }
   try(if(count==10){
-    str10 <- "results10_Scenario1_28Oct.RData"
+    str10 <- "results10_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2028,7 +2031,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str10)
   })
   try(if(count==20){
-    str20 <- "results20_sce1_28oct.RData"
+    str20 <- "results20_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2036,7 +2039,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str20)
   })
   try(if(count==30){
-    str30 <- "results30_sce1_28oct.RData"
+    str30 <- "results30_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2044,7 +2047,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str30)
   })
   try(if(count==40){
-    str40 <- "results40_sce2_28oct.RData"
+    str40 <- "results40_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2052,7 +2055,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str40)
   })
   try(if(count==50){
-    str50 <- "results50_sce2_28oct.RData"
+    str50 <- "results50_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2060,7 +2063,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str50)
   })
   try(if(count==60){
-    str60 <- "results60_sce2_3.RData"
+    str60 <- "results60_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2068,7 +2071,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str60)
   })
   if(count==70){
-    str70 <- "results70_sce2BIS.RData"
+    str70 <- "results70_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2076,7 +2079,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str70)
   }
   if(count==100){
-    str100 <- "results100_sce2BIS.RData"
+    str100 <- "results100_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2084,7 +2087,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str100)
   }
   if(count==120){
-    str120 <- "results120_sceBIS.RData"
+    str120 <- "results120_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2092,7 +2095,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str120)
   }
   if(count==150){
-    str150 <- "results150_sce2BIS.RData"
+    str150 <- "results150_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
@@ -2100,7 +2103,7 @@ for(count in 1:num_dat){
          checkTimes, checkTimes2, file=str150)
   }
   if(count==175){
-    str175 <- "results175_sce2.RData"
+    str175 <- "results175_sce2_6nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
          IBS_multi_test, EPCE_multi_test, censoring_train,
