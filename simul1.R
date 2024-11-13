@@ -1878,8 +1878,9 @@ for(count in 1:num_dat){
   
   #Fitting the multivariate JM
   try(multiJM <- jm(CoxFit, list(LM1, LM2, LM3, LM4, LM5), time_var = "time",
-                    which_independent = "all",
                     n_iter = 12000L, n_burnin = 2000L, n_thin = 5L))
+  #We don't use which_independent = "all", because we are assuming non-indep
+  #between longitudinal outcomes.
   cat("Multi JM fitted\n")
   
   #calculate the integrated Brier score as an overall measure of predictive 
