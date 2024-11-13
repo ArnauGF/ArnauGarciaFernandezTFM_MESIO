@@ -1871,6 +1871,10 @@ for(count in 1:num_dat){
   try(LM5 <- mixed_model(y5 ~ time, data = DF,
                          random = ~ time || id, family = binomial()))
   
+  ###########################
+  #which_indep = "all"???????????????????????
+  ##########################
+  
   
   #Fitting the multivariate JM
   try(multiJM <- jm(CoxFit, list(LM1, LM2, LM3, LM4, LM5), time_var = "time",
