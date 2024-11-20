@@ -163,3 +163,50 @@ mv1 <- stan_jm(
   time_var = "year",
   chains = 1, cores = 1, seed = 12345, iter = 100)
 
+###############################################################################
+###############################################################################
+### Using https://github.com/sambrilleman/2018-StanCon-Notebook/blob/master/notebook.pdf
+##############################################################################
+###############################################################################
+library(rstan)
+standata <- readRDS("Stan/data/standata.rds")
+staninit <- readRDS("Stan/data/staninit.rds")
+mod1 <- stan(
+    file = "Stan/jm_SamBrilleman.stan", 
+    data = standata,
+    init = function() staninit,
+    chains = 2, seed = 12345)
+
+## let's see some results related with the model
+print(mod1, pars = "a_beta")
+
+library(tidyr)
+posterior <- as.data.frame(mod1)
+names(posterior)
+
+library(bayesplot)
+mcmc_areas(posterior,
+           pars = c("y1_gamma"),
+           prob = 0.8)
+
+## the above code works, now let's try it adding the indicators to the 
+# longitudinal outcomes
+
+#we change the init list
+staninit2 <- append(staninit, list(pind = 0.5))
+
+mod2 <- stan(
+  file = "Stan/jm_multi_simple_indicators.stan", 
+  data = standata,
+  init = function() staninit2,
+  chains = 2, seed = 12345)
+
+print(mod2, pars = "a_beta")
+
+posterior2 <- as.data.frame(mod2)
+names(posterior2)
+
+
+mcmc_areas(posterior2,
+           pars = c("y1_gamma"),
+           prob = 0.8)
