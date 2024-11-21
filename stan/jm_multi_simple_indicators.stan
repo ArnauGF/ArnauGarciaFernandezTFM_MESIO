@@ -224,9 +224,6 @@ model {
   {
     vector[nrow_y_Xq[1]] y1_eta_q; 
     vector[nrow_y_Xq[2]] y2_eta_q;
-    // for indicator stuff
-    vector[nrow_y_Xq[1]] y1_eta_q_1; 
-    vector[nrow_y_Xq[2]] y2_eta_q_2;
     
     vector[nrow_e_Xq] e_eta_q;
     vector[nrow_e_Xq] log_basehaz;  // log baseline hazard AT event time and quadrature points
@@ -273,6 +270,7 @@ model {
     // time for the individual.
     //target += sum(head(log_basehaz + e_eta_q + a_beta[1] * y1_eta_q + a_beta[2] * y2_eta_q;, Nevents)) 
     //- dot_product(qwts, exp(tail(log_basehaz + e_eta_q + a_beta[1] * y1_eta_q + a_beta[2] * y2_eta_q;, Npat_times_qnodes)));  
+    
 
     target += log_mix(
       pind, 
@@ -347,7 +345,244 @@ generated quantities {
   if (b_K == 1)
     b_cov[1] = b_sd[1] * b_sd[1];
   else
-    b_cov = to_vector(quad_form_diag(
-      multiply_lower_tri_self_transpose(b_cholesky), b_sd))[b_cov_idx];
+    b_cov = to_vector(quad_form_diag( multiply_lower_tri_self_transpose(b_cholesky), b_sd))[b_cov_idx];
+  
+  // indicator stuff
+  
+  // Posterior probabilities for each indicator configuration
+  real<lower=0> post_prob_z1[2]; // P(z1 | calculations)
+  real<lower=0> post_prob_z2[2]; // P(z2 | calculations)
+  
+
+    // Initialize log-likelihoods for each indicator combination
+    array[2,2] real log_joint;
+  
+  
+  {
+  vector[y_N[1]] y1_eta; 
+  vector[y_N[2]] y2_eta;
+  
+  // evaluate linear predictor for each long. submodel
+  y1_eta = evaluate_eta(y1_X, y1_Z, y1_Z_id, y1_gamma, y1_beta, b_mat, 0);
+  y2_eta = evaluate_eta(y2_X, y2_Z, y2_Z_id, y2_gamma, y2_beta, b_mat, b_KM[1]);
+  
+  vector[nrow_y_Xq[1]] y1_eta_q; 
+  vector[nrow_y_Xq[2]] y2_eta_q;
+  vector[nrow_e_Xq] log_basehaz;
+  vector[nrow_e_Xq] e_eta_q;
+  
+
+    
+  e_eta_q = e_Xq * e_beta;
+    
+    // Long. submodel: linear predictor at event time and quadrature points
+    y1_eta_q = evaluate_eta(y1_Xq, y1_Zq, y1_Zq_id, y1_gamma, y1_beta, b_mat, 0);
+    y2_eta_q = evaluate_eta(y2_Xq, y2_Zq, y2_Zq_id, y2_gamma, y2_beta, b_mat, b_KM[1]);
+  
+    
+    // Log baseline hazard at event time and quadrature points
+    log_basehaz = basehaz_X * e_aux; 
+  
+  
+
+    // Recalculate log-likelihood for (z1 = 1, z2 = 1)
+    {
+      real ll = 0;  // Start from 0 to accumulate log-likelihood
+      // increment the target with the log-lik
+      ll += normal_lpdf(y1 | y1_eta, y1_aux);
+      ll += normal_lpdf(y2 | y2_eta, y2_aux);
+      ll += sum(head(log_basehaz + e_eta_q + a_beta[1] * y1_eta_q + a_beta[2] * y2_eta_q, Nevents)) 
+    - dot_product(qwts, exp(tail(log_basehaz + e_eta_q + a_beta[1] * y1_eta_q + a_beta[2] * y2_eta_q, Npat_times_qnodes)));
+    
+        
+        // intercepts for long. submodels
+      ll += normal_lpdf(y1_gamma | 
+        y_prior_mean_for_intercept[1], y_prior_scale_for_intercept[1]);    
+      ll += normal_lpdf(y2_gamma | 
+        y_prior_mean_for_intercept[2], y_prior_scale_for_intercept[2]);    
+  
+      // coefficients for long. submodels   
+      ll += normal_lpdf(y1_z_beta | 0, 1);
+      ll += normal_lpdf(y2_z_beta | 0, 1);
+      
+      // coefficients for event submodel
+      ll += normal_lpdf(e_z_beta | 0, 1);
+      ll += normal_lpdf(a_z_beta | 0, 1);
+      
+      // residual error SDs for long. submodels
+      ll += normal_lpdf(y1_aux_unscaled | 0, 1);
+      ll += normal_lpdf(y2_aux_unscaled | 0, 1);
+      
+      // b-spline coefs for baseline hazard
+      ll += normal_lpdf(e_aux_unscaled | 0, 1);
+
+    // group level terms
+      // sds
+      ll += student_t_lpdf(b_sd | b_prior_df, 0, b_prior_scale);
+      // primitive coefs
+      ll += normal_lpdf(to_vector(z_b_mat) | 0, 1); 
+      // corr matrix
+      if (b_K > 1) 
+        ll += lkj_corr_cholesky_lpdf(b_cholesky | b_prior_regularization);
+      
+      log_joint[1,1] = ll;
+    }
+
+    // Recalculate log-likelihood for (z1 = 1, z2 = 0)
+    {
+      real ll = 0;  // Start from 0 to accumulate log-likelihood
+      
+      // increment the target with the log-lik
+      ll += normal_lpdf(y1 | y1_eta, y1_aux);
+      ll += normal_lpdf(y2 | y2_eta, y2_aux);
+      ll += sum(head(log_basehaz + e_eta_q + a_beta[1] * y1_eta_q, Nevents)) 
+    - dot_product(qwts, exp(tail(log_basehaz + e_eta_q + a_beta[1] * y1_eta_q, Npat_times_qnodes)));
+    
+        
+        // intercepts for long. submodels
+      ll += normal_lpdf(y1_gamma | 
+        y_prior_mean_for_intercept[1], y_prior_scale_for_intercept[1]);    
+      ll += normal_lpdf(y2_gamma | 
+        y_prior_mean_for_intercept[2], y_prior_scale_for_intercept[2]);    
+  
+      // coefficients for long. submodels   
+      ll += normal_lpdf(y1_z_beta | 0, 1);
+      ll += normal_lpdf(y2_z_beta | 0, 1);
+      
+      // coefficients for event submodel
+      ll += normal_lpdf(e_z_beta | 0, 1);
+      ll += normal_lpdf(a_z_beta | 0, 1);
+      
+      // residual error SDs for long. submodels
+      ll += normal_lpdf(y1_aux_unscaled | 0, 1);
+      ll += normal_lpdf(y2_aux_unscaled | 0, 1);
+      
+      // b-spline coefs for baseline hazard
+      ll += normal_lpdf(e_aux_unscaled | 0, 1);
+
+    // group level terms
+      // sds
+      ll += student_t_lpdf(b_sd | b_prior_df, 0, b_prior_scale);
+      // primitive coefs
+      ll += normal_lpdf(to_vector(z_b_mat) | 0, 1); 
+      // corr matrix
+      if (b_K > 1) 
+        ll += lkj_corr_cholesky_lpdf(b_cholesky | b_prior_regularization);
+      
+  
+      log_joint[1,2] = ll;
+    }
+
+    // Recalculate log-likelihood for (z1 = 0, z2 = 1)
+    {
+      real ll = 0;  // Start from 0 to accumulate log-likelihood
+      
+      // increment the target with the log-lik
+      ll += normal_lpdf(y1 | y1_eta, y1_aux);
+      ll += normal_lpdf(y2 | y2_eta, y2_aux);
+      ll += sum(head(log_basehaz + e_eta_q + a_beta[2] * y2_eta_q, Nevents)) 
+    - dot_product(qwts, exp(tail(log_basehaz + e_eta_q + a_beta[2] * y2_eta_q, Npat_times_qnodes)));
+    
+        
+        // intercepts for long. submodels
+      ll += normal_lpdf(y1_gamma | 
+        y_prior_mean_for_intercept[1], y_prior_scale_for_intercept[1]);    
+      ll += normal_lpdf(y2_gamma | 
+        y_prior_mean_for_intercept[2], y_prior_scale_for_intercept[2]);    
+  
+      // coefficients for long. submodels   
+      ll += normal_lpdf(y1_z_beta | 0, 1);
+      ll += normal_lpdf(y2_z_beta | 0, 1);
+      
+      // coefficients for event submodel
+      ll += normal_lpdf(e_z_beta | 0, 1);
+      ll += normal_lpdf(a_z_beta | 0, 1);
+      
+      // residual error SDs for long. submodels
+      ll += normal_lpdf(y1_aux_unscaled | 0, 1);
+      ll += normal_lpdf(y2_aux_unscaled | 0, 1);
+      
+      // b-spline coefs for baseline hazard
+      ll += normal_lpdf(e_aux_unscaled | 0, 1);
+
+    // group level terms
+      // sds
+      ll += student_t_lpdf(b_sd | b_prior_df, 0, b_prior_scale);
+      // primitive coefs
+      ll += normal_lpdf(to_vector(z_b_mat) | 0, 1); 
+      // corr matrix
+      if (b_K > 1) 
+        ll += lkj_corr_cholesky_lpdf(b_cholesky | b_prior_regularization);
+      
+      
+      log_joint[2,1] = ll;
+    }
+
+    // Recalculate log-likelihood for (z1 = 0, z2 = 0)
+    {
+      real ll = 0;  // Start from 0 to accumulate log-likelihood
+      
+      // increment the target with the log-lik
+      ll += normal_lpdf(y1 | y1_eta, y1_aux);
+      ll += normal_lpdf(y2 | y2_eta, y2_aux);
+      ll += sum(head(log_basehaz + e_eta_q, Nevents)) 
+    - dot_product(qwts, exp(tail(log_basehaz + e_eta_q, Npat_times_qnodes))) ;
+    
+        
+        // intercepts for long. submodels
+      ll += normal_lpdf(y1_gamma | 
+        y_prior_mean_for_intercept[1], y_prior_scale_for_intercept[1]);    
+      ll += normal_lpdf(y2_gamma | 
+        y_prior_mean_for_intercept[2], y_prior_scale_for_intercept[2]);    
+  
+      // coefficients for long. submodels   
+      ll += normal_lpdf(y1_z_beta | 0, 1);
+      ll += normal_lpdf(y2_z_beta | 0, 1);
+      
+      // coefficients for event submodel
+      ll += normal_lpdf(e_z_beta | 0, 1);
+      ll += normal_lpdf(a_z_beta | 0, 1);
+      
+      // residual error SDs for long. submodels
+      ll += normal_lpdf(y1_aux_unscaled | 0, 1);
+      ll += normal_lpdf(y2_aux_unscaled | 0, 1);
+      
+      // b-spline coefs for baseline hazard
+      ll += normal_lpdf(e_aux_unscaled | 0, 1);
+
+    // group level terms
+      // sds
+      ll += student_t_lpdf(b_sd | b_prior_df, 0, b_prior_scale);
+      // primitive coefs
+      ll += normal_lpdf(to_vector(z_b_mat) | 0, 1); 
+      // corr matrix
+      if (b_K > 1) 
+        ll += lkj_corr_cholesky_lpdf(b_cholesky | b_prior_regularization);
+      
+      log_joint[2,2] = ll;
+    }
+    
+  }
+    // Combine log-likelihoods with the prior probabilities of z1 and z2
+    array[2,2] real joint;
+    joint[1,1] = 2*log(pind) + log_joint[1,1];
+    joint[1,2] = log(pind) + log(1 - pind) + log_joint[1,2];
+    joint[2,1] = log(1 - pind) + log(pind) + log_joint[2,1];
+    joint[2,2] = 2*log(1 - pind) + log_joint[2,2];
+    
+
+    // Normalize to get posterior probabilities (using log-sum-exp for stability)
+    real log_sum_exp_joint = log_sum_exp({joint[1,1], joint[1,2], joint[2,1], joint[2,2]});
+
+    // Marginal posterior for z1
+    post_prob_z1[1] = exp(joint[1,1] - log_sum_exp_joint) + exp(joint[1,2] - log_sum_exp_joint); // P(z1 = 1)
+    post_prob_z1[2] = exp(joint[2,1] - log_sum_exp_joint) + exp(joint[2,2] - log_sum_exp_joint); // P(z1 = 0)
+
+    // Marginal posterior for z2
+    post_prob_z2[1] = exp(joint[1,1] - log_sum_exp_joint) + exp(joint[2,1] - log_sum_exp_joint); // P(z2 = 1)
+    post_prob_z2[2] = exp(joint[1,2] - log_sum_exp_joint) + exp(joint[2,2] - log_sum_exp_joint); // P(z2 = 0)
+  
+      
+  
 }
 

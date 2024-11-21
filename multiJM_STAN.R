@@ -178,7 +178,7 @@ mod1 <- stan(
     chains = 2, seed = 12345)
 
 ## let's see some results related with the model
-print(mod1, pars = "a_beta")
+print(mod1, pars = "y2_alpha")
 
 library(tidyr)
 posterior <- as.data.frame(mod1)
@@ -201,12 +201,17 @@ mod2 <- stan(
   init = function() staninit2,
   chains = 2, seed = 12345)
 
-print(mod2, pars = "a_beta")
+print(mod2, pars = "post_prob_z1")
+print(mod2, pars = "post_prob_z2")
 
 posterior2 <- as.data.frame(mod2)
 names(posterior2)
 
 
 mcmc_areas(posterior2,
-           pars = c("y1_gamma"),
+           pars = c("post_prob_z1[1]"),
+           prob = 0.8)
+
+mcmc_areas(posterior2,
+           pars = c("post_prob_z2[1]"),
            prob = 0.8)
