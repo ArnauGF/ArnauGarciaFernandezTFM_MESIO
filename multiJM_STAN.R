@@ -140,28 +140,6 @@ stan_jm <- function(formulaLong, dataLong, formulaEvent, dataEvent, time_var,
   return(out)
 }
 
-################################################################################
-################################################################################
-## We use the functions
-################################################################################
-################################################################################
-
-#we load the data sets
-library(JMbayes2)
-pbc2 <- pbc2
-pbc2.id <- pbc2.id
-
-#we test
-mv1 <- stan_jm(
-  formulaLong = list(
-    logBili ~ year + (1 | id),
-    albumin ~ sex + year + (year | id)),
-  dataLong = pbc2,
-  formulaEvent = Surv(futimeYears, death) ~ sex,
-  dataEvent = pbc2.id,
-  assoc = list(c("etavalue", "etaslope"), "etaauc"),
-  time_var = "year",
-  chains = 1, cores = 1, seed = 12345, iter = 100)
 
 ###############################################################################
 ###############################################################################
@@ -215,3 +193,74 @@ mcmc_areas(posterior2,
 mcmc_areas(posterior2,
            pars = c("post_prob_z2[1]"),
            prob = 0.8)
+
+## with these we have obtained weights 0.3589744 for the first longi outcome
+# and 0.6410256 for the second one
+#we now fit the same model with JMbayes2 package and apply SL to see differences
+#between weigths
+library(JMbayes2)
+pbcLong <- readRDS("Data/pbcLong.rds")
+pbcSurv <- readRDS("Data/pbcSurv.rds")
+
+#we gather all the info into the longitudinal data set to be able to work with
+#the functions we have:
+library(dplyr)
+pbc_full <- left_join(pbcLong, pbcSurv, by = "id")
+pbc_full$age.y <- NULL
+pbc_full$sex.y <- NULL
+pbc_full$trt.y <- NULL
+pbc_full <- pbc_full %>%
+  rename(age = age.x, trt = trt.x, sex = sex.x)
+
+CVdats <- create_folds(pbc_full, V = 3, id_var = "id")
+
+fit_models <- function (dataLong) {
+  library("JMbayes2")
+  data_id <- dataLong[!duplicated(dataLong$id), ]
+  CoxFit <- coxph(Surv(futimeYears, death) ~ sex + trt, data = data_id)
+  LM1 <- lme(logBili ~ year, data = dataLong, random = ~ year | id)
+  LM2 <- lme(albumin ~ year, data = dataLong, random = ~ year | id)
+  JM1 <- jm(CoxFit, LM1, time_var = "year")
+  JM2 <- jm(CoxFit, LM2, time_var = "year")
+  out <- list(M1 = JM1, M2 = JM2)
+  class(out) <- "jmList"
+  out
+}
+
+cl <- parallel::makeCluster(5L)
+Models_folds <- parallel::parLapply(cl, CVdats$training, fit_models)
+parallel::stopCluster(cl)
+
+# time window to compute the scores
+t0 <- 5
+dt <- 5
+#computing Brier weights
+Brier_weights <- tvBrier(Models_folds, newdata = CVdats$testing, 
+                         integrated = TRUE, Tstart = t0, Dt = dt)
+# EPCE weights
+EPCE_weights <- tvEPCE(Models_folds, newdata = CVdats$testing, 
+                       Tstart = t0, Dt = dt)
+
+# computing with full data and taking into account the BMA indicators weights:
+
+#fitting models with whole dataset
+Models <- fit_models(pbc_full)
+
+#we use Brier weights to compute IBS with full data:
+bw <- Brier_weights$weights
+brier_score_SL_full <- tvBrier(Models, newdata = pbc_full, model_weights = bw, 
+                               Tstart = t0, Dt = dt, integrated = TRUE)
+
+#we use EPCE weights to compute EPCE with full data:
+ew <- EPCE_weights$weights
+EPCE_score_SL_full <- tvEPCE(Models, newdata = pbc_full, model_weights = ew,
+                             Tstart = t0, Dt = dt)
+
+#we use the Indicator BMA weights:
+BMA_IND_w <- c(0.3589744, 0.6410256)
+brier_score_full_BMA <- tvBrier(Models, newdata = pbc_full, model_weights = BMA_IND_w, 
+                               Tstart = t0, Dt = dt, integrated = TRUE)
+EPCE_score_full_BMA <- tvEPCE(Models, newdata = pbc_full, model_weights = BMA_IND_w,
+                             Tstart = t0, Dt = dt)
+
+## we can see that in this case SL is giving slightly better results than BMA indicators
