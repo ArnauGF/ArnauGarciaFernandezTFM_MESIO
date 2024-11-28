@@ -4,10 +4,13 @@
 # - Only the multi JM as a data-generating model
 # - Type 1 censoring 
 # - Non-indep random effects (non-indep between longitudinal outcomes)
+
+
+# - Now with just LMM for the longitudinal outcomes
 ###########################################################################
 ###########################################################################
 library(MASS)
-
+num_datasets <- 50
 #####D matrix for the random effects:
 set.seed(12345)
 sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
@@ -22,8 +25,10 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
                    runif(1,0,1.5))
                  ,nrow = 10)
 
-### We start the loop for the simulation:
+keep_objects <- c(num_datasets)
 
+### We start the loop for the simulation:
+for(count in 1:num_datasets){
   ############################
   #We generate the dataset
   ###########################
@@ -53,43 +58,57 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   DF <- data.frame(id = rep(seq_len(n), each = K),
                    time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                    visit = c(replicate(n, seq(1,K))),
-                   sex = rep(gl(2, n/2, labels = c("male", "female")), each = K))
+                   sex = rep(gl(2, n/2, labels = c("male", "female")), each = K),
+                   treatment = rep(gl(2, n/2, labels = c("A", "B")), each = K))
   DF_test <- data.frame(id = rep(seq_len(n_test), each = K),
                         time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                         visit = c(replicate(n, seq(1,K))),
-                        sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K))
+                        sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K),
+                        treatment = rep(gl(2, n/2, labels = c("A", "B")), each = K))
   
   
   # design matrices for the fixed and random effects for longitudinal submodels
   X1 <- model.matrix(~ sex * time, data = DF)
   Z1 <- model.matrix(~ time, data = DF)
   
-  X2 <- model.matrix(~ sex + time, data = DF )
+  X2 <- model.matrix(~ treatment * time, data = DF )
   Z2 <- model.matrix(~ time, data = DF)
   
   X3 <- model.matrix(~ time, data = DF )
   Z3 <- model.matrix(~ time, data = DF)
   
-  X4 <- model.matrix(~ sex + time, data = DF)
+  #X4 <- model.matrix(~ sex + time, data = DF)
+  #Z4 <- model.matrix(~ time, data = DF)
+  
+  X4 <- model.matrix(~ sex + time , data = DF)
   Z4 <- model.matrix(~ time, data = DF)
   
-  X5 <- model.matrix(~ time, data = DF)
+  #X5 <- model.matrix(~ time, data = DF)
+  #Z5 <- model.matrix(~ time, data = DF)
+  
+  X5 <- model.matrix(~ treatment + time, data = DF)
   Z5 <- model.matrix(~ time, data = DF)
   
   ####for test data set
   X1_test <- model.matrix(~ sex * time, data = DF_test)
   Z1_test <- model.matrix(~ time, data = DF_test)
   
-  X2_test <- model.matrix(~ sex + time, data = DF_test )
+  X2_test <- model.matrix(~ treatment * time, data = DF_test )
   Z2_test <- model.matrix(~ time, data = DF_test)
   
   X3_test <- model.matrix(~ time, data = DF_test )
   Z3_test <- model.matrix(~ time, data = DF_test)
   
+  #X4_test <- model.matrix(~ sex + time, data = DF_test)
+  #Z4_test <- model.matrix(~ time, data = DF_test)
+  
   X4_test <- model.matrix(~ sex + time, data = DF_test)
   Z4_test <- model.matrix(~ time, data = DF_test)
   
-  X5_test <- model.matrix(~ time, data = DF_test)
+  #X5_test <- model.matrix(~ time, data = DF_test)
+  #Z5_test <- model.matrix(~ time, data = DF_test)
+  
+  X5_test <- model.matrix(~ treatment + time, data = DF_test)
   Z5_test <- model.matrix(~ time, data = DF_test)
   
   #Simulate random effects
@@ -126,7 +145,7 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   
   #Simulate second longitudinal outcome
   ###############################################
-  betas2 <- c(-1.8, -0.06, 0.5) # fixed effects coefficients
+  betas2 <- c(-1.8, -0.06, 0.5, 0.06) # fixed effects coefficients
   sigma2 <- 0.25 # errors sd
   
   # we simulate random effects
@@ -182,9 +201,10 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   # linear predictor
   eta_y4 <- as.vector(X4 %*% betas4 + rowSums(Z4 * b4[DF$id, ]))
   # mean of the binomial distribution
-  mu_y4 <- plogis(eta_y4)
+  #mu_y4 <- plogis(eta_y4)
   # we simulate binomial longitudinal data
-  DF$y4 <- rbinom(n * K, size = 1, prob = mu_y4)
+  #DF$y4 <- rbinom(n * K, size = 1, prob = mu_y4)
+  DF$y4 <- rnorm(n_test * K, mean = eta_y4, sd = sigma3)
   
   #####Test data
   # we simulate random effects
@@ -192,23 +212,24 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   # linear predictor
   eta_y4_test <- as.vector(X4_test %*% betas4 + rowSums(Z4_test * b4_test[DF_test$id, ]))
   # mean of the binomial distribution
-  mu_y4_test <- plogis(eta_y4_test)
+  #mu_y4_test <- plogis(eta_y4_test)
   # we simulate binomial longitudinal data
-  DF_test$y4 <- rbinom(n_test * K, size = 1, prob = mu_y4_test)
-  
+  #DF_test$y4 <- rbinom(n_test * K, size = 1, prob = mu_y4_test)
+  DF_test$y4 <- rnorm(n_test * K, mean = eta_y4_test, sd = sigma3)
   
   #Simulate fifth longitudinal outcome
   ###############################################
-  betas5 <- c(1, 0.155) # fixed effects coefficients
+  betas5 <- c(1, 0.155, 0.12345) # fixed effects coefficients
   
   # we simulate random effects
   b5 <- b[, c(9,10)]
   # linear predictor
   eta_y5 <- as.vector(X5 %*% betas5 + rowSums(Z5 * b5[DF$id, ]))
   # mean of the binomial distribution
-  mu_y5 <- plogis(eta_y5)
+  #mu_y5 <- plogis(eta_y5)
   # we simulate binomial longitudinal data
-  DF$y5 <- rbinom(n * K, size = 1, prob = mu_y5)
+  #DF$y5 <- rbinom(n * K, size = 1, prob = mu_y5)
+  DF$y5 <- rnorm(n_test * K, mean = eta_y5, sd = sigma3)
   
   ####Test data
   # we simulate random effects
@@ -216,20 +237,30 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   # linear predictor
   eta_y5_test <- as.vector(X5_test %*% betas5 + rowSums(Z5_test * b5_test[DF_test$id, ]))
   # mean of the binomial distribution
-  mu_y5_test <- plogis(eta_y5_test)
+  #mu_y5_test <- plogis(eta_y5_test)
   # we simulate binomial longitudinal data
-  DF_test$y5 <- rbinom(n_test * K, size = 1, prob = mu_y5_test)
+  #DF_test$y5 <- rbinom(n_test * K, size = 1, prob = mu_y5_test)
+  
+  DF_test$y5 <- rnorm(n_test * K, mean = eta_y5_test, sd = sigma3)
   
   #OBS: other glmm distr (beta, gamma, negative binom, etc) can be used
   
   
   #Simulate event times
   ########################################
-  upp_Cens <- 8 # fixed Type I censoring time
-  shape_wb <- 6.5 # shape Weibull
+  upp_Cens <- 5 # fixed Type I censoring time
+  #shape_wb <- 6.5 # shape Weibull
+  shape_wb <- 3.5
   alpha <- c(0.8, 0.61, 0.38, 0.222, 0.74) # association coefficients
-  gammas <- c("(Intercept)" = -15, "sex" = -0.5)
+  #alpha <- c(0.8, 0.61, 0.38, 0.222, 0.14)
+  #gammas <- c("(Intercept)" = -15, "sex" = -0.5)
+  gammas <- c("(Intercept)" = -7.5, "sex" = -0.5)
+  
+  #Para bajar el número de trueTimes==150 ha sido clave bajar el intercept de 
+  #-15 a -7
+  
   W <- model.matrix(~ sex, data = DF[!duplicated(DF$id), ])
+  W_treat <- model.matrix(~ treatment, data = DF[!duplicated(DF$id), ])
   # linear predictor for the survival model
   eta_t <- as.vector(W %*% gammas)
   # to simulate event times we use inverse transform sampling
@@ -241,17 +272,18 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   invS <- function (t, i) {
     # i denotes the subject
     sex_i <- W[i, 2L]
+    treatment_i <- W_treat[i,2L]
     # h() is the hazard function and we assume a Weibull baseline hazard
     h <- function (s) {
       X1_at_s <- cbind(1, sex_i, s, sex_i * s)
       Z1_at_s <- cbind(1, s)
-      X2_at_s <- cbind(1, sex_i, s)
+      X2_at_s <- cbind(1, treatment_i, s, treatment_i * s)
       Z2_at_s <- cbind(1, s)
       X3_at_s <- cbind(1, s)
       Z3_at_s <- cbind(1, s)
       X4_at_s <- cbind(1, sex_i, s)
       Z4_at_s <- cbind(1, s)
-      X5_at_s <- cbind(1, s)
+      X5_at_s <- cbind(1, treatment_i, s)
       Z5_at_s <- cbind(1, s)
       # the linear predictor from the mixed model evaluated at time s
       f1 <- as.vector(X1_at_s %*% betas1 +
@@ -294,6 +326,7 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
 
   #######Test data##################
   W_test <- model.matrix(~ sex, data = DF_test[!duplicated(DF_test$id), ])
+  W_treat_test <- model.matrix(~ treatment, data = DF_test[!duplicated(DF_test$id), ])
   # linear predictor for the survival model
   eta_t_test <- as.vector(W_test %*% gammas)
   # to simulate event times we use inverse transform sampling
@@ -305,17 +338,18 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   invS <- function (t, i) {
     # i denotes the subject
     sex_i <- W_test[i, 2L]
+    treatment_i <- W_treat_test[i, 2L]
     # h() is the hazard function and we assume a Weibull baseline hazard
     h <- function (s) {
       X1_at_s <- cbind(1, sex_i, s, sex_i * s)
       Z1_at_s <- cbind(1, s)
-      X2_at_s <- cbind(1, sex_i, s)
+      X2_at_s <- cbind(1, treatment_i, s, treatment_i * s)
       Z2_at_s <- cbind(1, s)
       X3_at_s <- cbind(1, s)
       Z3_at_s <- cbind(1, s)
       X4_at_s <- cbind(1, sex_i, s)
       Z4_at_s <- cbind(1, s)
-      X5_at_s <- cbind(1, s)
+      X5_at_s <- cbind(1, treatment_i, s)
       Z5_at_s <- cbind(1, s)
       # the linear predictor from the mixed model evaluated at time s
       f1 <- as.vector(X1_at_s %*% betas1 +
@@ -362,7 +396,24 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   DF.id <- DF[!duplicated(DF$id),]
   DF_test.id <- DF_test[!duplicated(DF_test$id),]
   
+  #save DF_count, and append into the keep objects vector
+  assign(paste0("DF_", count), DF)
+  assign(paste0("DF.id_", count), DF.id)
+  assign(paste0("DF_test_", count), DF_test)
+  assign(paste0("DF_test.id_", count), DF_test.id)
+  
+  
+  current_dat <- c(paste0("DF_", count), paste0("DF.id_", count), paste0("DF_test_", count),
+                   paste0("DF_test.id_", count))
+  keep_objects <- c(keep_objects, current_dat)
+  ######################################
+  #END FOR
+  ######################################
+}
+  
   #Removing all the global environment except DF, DF_test:
-  keep_objects <- c("DF", "DF_test", "DF_all", "DF_test_all", "DF.id", "DF_test.id")
   rm(list = setdiff(ls(), keep_objects))
+  
+  #Saving the global environment in RData file
+  save.image(file = "SceII_L5_LLMs.RData")
   
