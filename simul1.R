@@ -2636,7 +2636,7 @@ for(count in 1:num_dat){
   try(censoring_test[count] <- sum(DF_test.id$event==0))
   
   
-  if(count==999){
+  if(count==2){
     strr <- "results1iter_Scenario3_13nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
@@ -2644,7 +2644,7 @@ for(count in 1:num_dat){
          censoring_test, dSL_test_IBS, dSL_test_EPCE, disSL_ibs, disSL_epce,
          checkTimes, checkTimes2, file=strr)
   }
-  if(count==999){
+  if(count==5){
     str1 <- "results2_sce3_13nov.RData"
     save(IBS_multi, EPCE_multi, IBS_univ, EPCE_univ, IBS_w, EPCE_w, dSL_cv_IBS,
          dSL_cv_EPCE, eSL_cv_IBS, eSL_cv_EPCE, eSL_test_IBS,  eSL_test_EPCE, 
