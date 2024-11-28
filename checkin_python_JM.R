@@ -4,18 +4,18 @@ library(JMbayes2)
 try(CoxFit <- coxph(Surv(Time, event) ~ sex, data = DF.id))
 
 try(LM1 <- lme(y1 ~ sex*time, data = DF, random = ~ time | id))
-try(LM2 <- lme(y2 ~ sex + time, data = DF, random = ~ time | id))
+try(LM2 <- lme(y2 ~ treatment*time, data = DF, random = ~ time | id))
 try(LM3 <- lme(y3 ~ time, data = DF, random = ~ time | id))
-try(LM4 <- mixed_model(y4 ~ sex + time, data = DF,
-                       random = ~ time || id, family = binomial()))
-try(LM5 <- mixed_model(y5 ~ time, data = DF,
-                       random = ~ time || id, family = binomial()))
+#try(LM4 <- mixed_model(y4 ~ sex + time, data = DF, random = ~ time || id, family = binomial()))
+try(LM4 <- lme(y4 ~ sex + time, data = DF, random = ~ time | id))
+#try(LM5 <- mixed_model(y5 ~ time, data = DF, random = ~ time || id, family = binomial()))
+try(LM5 <- lme(y5 ~ treatment + time, data = DF, random = ~ time | id))
 
 try(multiJM <- jm(CoxFit, list(LM1, LM2, LM3, LM4, LM5), time_var = "time",
                   n_iter = 12000L, n_burnin = 2000L, n_thin = 5L))
 
-t0 <- 4
-dt <- 1.5
+t0 <- 2.5
+dt <- 1
 try(brier_score_multi_IPCW <- tvBrier(multiJM, newdata = DF, Tstart = t0, Dt = dt, 
                                  integrated = TRUE, type_weights = "IPCW"))
 try(brier_score_multi_test_IPCW <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt, 
@@ -28,12 +28,10 @@ fit_models <- function (data) {
   data_id <- data[!duplicated(data$id), ]
   CoxFit <- coxph(Surv(Time, event) ~ sex, data = data_id)
   LM1 <- lme(y1 ~ sex*time, data = data, random = ~ time | id)
-  LM2 <- lme(y2 ~ sex + time, data = data, random = ~ time | id)
+  LM2 <- lme(y2 ~ treatment*time, data = data, random = ~ time | id)
   LM3 <- lme(y3 ~ time, data = data, random = ~ time | id)
-  LM4 <- mixed_model(y4 ~ sex + time, data = data,
-                     random = ~ time || id, family = binomial())
-  LM5 <- mixed_model(y5 ~ time, data = data,
-                     random = ~ time || id, family = binomial())
+  LM4 <- lme(y4 ~ sex + time, data = data, random = ~ time | id)
+  LM5 <- lme(y5 ~ treatment + time, data = data, random = ~ time | id)
   JM1 <- jm(CoxFit, LM1, time_var = "time")
   JM2 <- jm(CoxFit, LM2, time_var = "time")
   JM3 <- jm(CoxFit, LM3, time_var = "time")
