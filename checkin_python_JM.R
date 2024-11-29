@@ -13,6 +13,9 @@ count <- 0
 ###Read the data frames:
 load("SceII_L5_LLMs.RData")
 
+### we save it in a drive folder:
+setwd("D:/La meva unitat/TFM/code")
+
 for(count in 1:num_dat){
   
   #We take the current data sets
