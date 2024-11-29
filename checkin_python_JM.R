@@ -6,8 +6,12 @@ IBS_multi  <- IBS_multi_test <- numeric(num_dat)
 dSL_cv_IBS <- eSL_cv_IBS <- dSL_test_IBS <- eSL_test_IBS <- numeric(num_dat)
 IBS_univ  <- IBS_w <- matrix(nrow = num_dat, ncol = 5)
 IBS_univ_test <- IBS_w_test <- matrix(nrow = num_dat, ncol = 5)
+censoring_train <- censoring_test <- numeric(num_dat)
 disSL_ibs <- numeric(num_dat)
 count <- 0
+
+###Read the data frames:
+load("SceII_L5_LLMs.RData")
 
 for(count in 1:num_dat){
   
@@ -15,10 +19,12 @@ for(count in 1:num_dat){
   df_name <- paste0("DF_", count)
   df.id_name <- paste0("DF.id_", count)
   df_test_name <- paste0("DF_test_", count)
+  df_test.id_name <- paste0("DF_test.id_", count)
   
   DF <- get(df_name)
   DF.id <- get(df.id_name)
   DF_test <- get(df_test_name)
+  DF_test.id <- get(df_test.id_name)
   
   try(CoxFit <- coxph(Surv(Time, event) ~ sex, data = DF.id))
   
@@ -78,7 +84,7 @@ for(count in 1:num_dat){
                                     type_weights = "IPCW"))
   
   disSL_ibs[count] <- 0
-  try(disSL_ibs[count] <- which.min(Brier_weights$Brier_per_model))
+  try(disSL_ibs[count] <- which.min(Brier_sl_IPCW$Brier_per_model))
   
   if(disSL_ibs[count] == 1){
     try(Brier_dSL_test <- tvBrier(Models$M1, newdata = DF_test, 
@@ -105,19 +111,19 @@ for(count in 1:num_dat){
   ################################################################
   ##### Saving results:
   ################################################################
-  try(IBS_multi[count] <- brier_score_multi$Brier)
+  try(IBS_multi[count] <- brier_score_multi_IPCW$Brier)
   
-  try(IBS_univ[count, ] <- Brier_weights$Brier_per_model)
+  try(IBS_univ[count, ] <- Brier_sl_IPCW$Brier_per_model)
   
-  try(IBS_w[count, ] <- Brier_weights$weights)
+  try(IBS_w[count, ] <- Brier_sl_IPCW$weights)
   
-  try(dSL_cv_IBS[count] <- min(Brier_weights$Brier_per_model))
+  try(dSL_cv_IBS[count] <- min(Brier_sl_IPCW$Brier_per_model))
   
-  try(eSL_cv_IBS[count] <- Brier_weights$Brier)
+  try(eSL_cv_IBS[count] <- Brier_sl_IPCW$Brier)
   
-  try(eSL_test_IBS[count] <- Brier_weights_test$Brier)
+  try(eSL_test_IBS[count] <- Brier_SL_IPCW_test$Brier)
   
-  try(IBS_multi_test[count] <- brier_score_multi_test$Brier)
+  try(IBS_multi_test[count] <- brier_score_multi_test_IPCW$Brier)
   
   try(dSL_test_IBS[count] <- Brier_dSL_test$Brier)
   
@@ -127,50 +133,50 @@ for(count in 1:num_dat){
   try(censoring_test[count] <- sum(DF_test.id$event==0))
   
   
-  if(count==1){
-    strr <- "results1iter_Scenario3_13nov.RData"
+  if(count==2){
+    strr <- "results2_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=strr)
   }
   if(count==5){
-    str1 <- "results2_sce3_13nov.RData"
+    str1 <- "results5_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str1)
   }
   try(if(count==10){
-    str10 <- "results10_sce3_13nov_2.RData"
+    str10 <- "results10_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str10)
   })
   try(if(count==20){
-    str20 <- "results20_sce3_13nov_2.RData"
+    str20 <- "results20_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str20)
   })
   try(if(count==30){
-    str30 <- "results30_sce3_13nov.RData"
+    str30 <- "results30_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str30)
   })
   try(if(count==40){
-    str40 <- "results40_sce3_13nov.RData"
+    str40 <- "results40_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str30)
   })
   try(if(count==50){
-    str50 <- "results50_sce3_13nov.RData"
+    str50 <- "results50_sce2_29nov_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
