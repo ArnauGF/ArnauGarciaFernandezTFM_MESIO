@@ -11,6 +11,9 @@
 ###########################################################################
 library(MASS)
 num_datasets <- 100
+n <- 300 # number of subjects
+n_test <- 300
+K <- 17
 #####D matrix for the random effects:
 set.seed(12345)
 sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
