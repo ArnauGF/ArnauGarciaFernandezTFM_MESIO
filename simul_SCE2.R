@@ -24,6 +24,8 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
                    runif(1,0,1.5), runif(10, -0.005, 0.005),
                    runif(1,0,1.5))
                  ,nrow = 10)
+treat <- rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
+             , each = K)
 
 keep_objects <- c(num_datasets)
 
@@ -55,19 +57,16 @@ for(count in 1:num_datasets){
   # follow-up times up to t_max 
   # !! for Machine Learning purposes: two consecutive measurements will have
   #more than 0.5 of
-  set.seed(1234)
   DF <- data.frame(id = rep(seq_len(n), each = K),
                    time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                    visit = c(replicate(n, seq(1,K))),
                    sex = rep(gl(2, n/2, labels = c("male", "female")), each = K),
-                   treatment = rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
-                                   , each = K))
+                   treatment = treat)
   DF_test <- data.frame(id = rep(seq_len(n_test), each = K),
                         time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                         visit = c(replicate(n, seq(1,K))),
                         sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K),
-                        treatment = rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE)),
-                                        each = K))
+                        treatment = treat)
   
   
   # design matrices for the fixed and random effects for longitudinal submodels
@@ -417,5 +416,5 @@ for(count in 1:num_datasets){
   rm(list = setdiff(ls(), keep_objects))
   
   #Saving the global environment in RData file
-  save.image(file = "SceII_L5_LLMs.RData")
+  save.image(file = "SceII_L5_LLMs_100df.RData")
   
