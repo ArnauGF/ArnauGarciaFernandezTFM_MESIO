@@ -1,7 +1,7 @@
 ## Let's see the IBS IPCW when using the data set simulated for the deepsurv:
 library(JMbayes2)
 
-num_dat <- 50
+num_dat <- 100
 IBS_multi  <- IBS_multi_test <- numeric(num_dat)
 dSL_cv_IBS <- eSL_cv_IBS <- dSL_test_IBS <- eSL_test_IBS <- numeric(num_dat)
 IBS_univ  <- IBS_w <- matrix(nrow = num_dat, ncol = 5)
@@ -20,14 +20,15 @@ for(count in 1:num_dat){
   
   #We take the current data sets
   df_name <- paste0("DF_", count)
-  df.id_name <- paste0("DF.id_", count)
+  #df.id_name <- paste0("DF.id_", count)
   df_test_name <- paste0("DF_test_", count)
-  df_test.id_name <- paste0("DF_test.id_", count)
+  #df_test.id_name <- paste0("DF_test.id_", count)
   
   DF <- get(df_name)
-  DF.id <- get(df.id_name)
+  DF.id <- DF[!duplicated(DF$id),]
   DF_test <- get(df_test_name)
-  DF_test.id <- get(df_test.id_name)
+  DF_test.id <- DF_test[!duplicated(DF_test$id),]
+  
   
   try(CoxFit <- coxph(Surv(Time, event) ~ sex, data = DF.id))
   
