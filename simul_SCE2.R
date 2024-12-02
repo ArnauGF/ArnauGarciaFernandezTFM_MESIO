@@ -10,7 +10,7 @@
 ###########################################################################
 ###########################################################################
 library(MASS)
-num_datasets <- 50
+num_datasets <- 100
 #####D matrix for the random effects:
 set.seed(12345)
 sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
@@ -55,16 +55,19 @@ for(count in 1:num_datasets){
   # follow-up times up to t_max 
   # !! for Machine Learning purposes: two consecutive measurements will have
   #more than 0.5 of
+  set.seed(1234)
   DF <- data.frame(id = rep(seq_len(n), each = K),
                    time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                    visit = c(replicate(n, seq(1,K))),
                    sex = rep(gl(2, n/2, labels = c("male", "female")), each = K),
-                   treatment = rep(gl(2, n/2, labels = c("A", "B")), each = K))
+                   treatment = rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
+                                   , each = K))
   DF_test <- data.frame(id = rep(seq_len(n_test), each = K),
                         time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                         visit = c(replicate(n, seq(1,K))),
                         sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K),
-                        treatment = rep(gl(2, n/2, labels = c("A", "B")), each = K))
+                        treatment = rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE)),
+                                        each = K))
   
   
   # design matrices for the fixed and random effects for longitudinal submodels
@@ -398,13 +401,12 @@ for(count in 1:num_datasets){
   
   #save DF_count, and append into the keep objects vector
   assign(paste0("DF_", count), DF)
-  assign(paste0("DF.id_", count), DF.id)
+  #assign(paste0("DF.id_", count), DF.id)
   assign(paste0("DF_test_", count), DF_test)
-  assign(paste0("DF_test.id_", count), DF_test.id)
+  #assign(paste0("DF_test.id_", count), DF_test.id)
   
   
-  current_dat <- c(paste0("DF_", count), paste0("DF.id_", count), paste0("DF_test_", count),
-                   paste0("DF_test.id_", count))
+  current_dat <- c(paste0("DF_", count), paste0("DF_test_", count))
   keep_objects <- c(keep_objects, current_dat)
   ######################################
   #END FOR
