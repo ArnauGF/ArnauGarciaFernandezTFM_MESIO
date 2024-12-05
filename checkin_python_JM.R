@@ -17,7 +17,8 @@ load("SceII_L5_LLMs_100df.RData")
 setwd("D:/La meva unitat/TFM/code")
 
 for(count in 1:num_dat){
-  
+  #we print the current iteration in order to see the progress
+  print(count)
   #We take the current data sets
   df_name <- paste0("DF_", count)
   #df.id_name <- paste0("DF.id_", count)
@@ -194,7 +195,7 @@ for(count in 1:num_dat){
          censoring_test, dSL_test_IBS, disSL_ibs, file=str75)
   })
   try(if(count==100){
-    str50 <- "results100_sce2_2dec_5llms.RData"
+    str100 <- "results100_sce2_2dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
