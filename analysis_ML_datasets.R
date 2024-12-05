@@ -1,4 +1,9 @@
-## Let's see the IBS IPCW when using the data set simulated for the deepsurv:
+##############################################################################
+##############################################################################
+## Analysis of the dataset used with ML models using SL
+## See how the data sets are generated in simul_sce2.R file
+#############################################################################
+##############################################################################
 library(JMbayes2)
 
 num_dat <- 100
