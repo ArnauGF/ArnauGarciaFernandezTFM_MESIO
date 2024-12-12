@@ -16,7 +16,7 @@ disSL_ibs <- numeric(num_dat)
 count <- 0
 
 ###Read the data frames:
-load("SceII_L5_LLMs_100df.RData")
+load("SceI_L5_LLMs_100df.RData")
 
 ### we save it in a drive folder:
 setwd("D:/La meva unitat/TFM/code")
@@ -144,63 +144,63 @@ for(count in 1:num_dat){
   
   
   if(count==2){
-    strr <- "results2_sce2_2dec_5llms.RData"
+    strr <- "results2_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=strr)
   }
   if(count==5){
-    str1 <- "results5_sce2_2dec_5llms.RData"
+    str1 <- "results5_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str1)
   }
   try(if(count==10){
-    str10 <- "results10_sce2_2dec_5llms.RData"
+    str10 <- "results10_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str10)
   })
   try(if(count==20){
-    str20 <- "results20_sce2_2dec_5llms.RData"
+    str20 <- "results20_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str20)
   })
   try(if(count==30){
-    str30 <- "results30_sce2_2dec_5llms.RData"
+    str30 <- "results30_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str30)
   })
   try(if(count==40){
-    str40 <- "results40_sce2_2dec_5llms.RData"
+    str40 <- "results40_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str30)
   })
   try(if(count==50){
-    str50 <- "results50_sce2_2dec_5llms.RData"
+    str50 <- "results50_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str50)
   })
   try(if(count==75){
-    str75 <- "results75_sce2_2dec_5llms.RData"
+    str75 <- "results75_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,
          censoring_test, dSL_test_IBS, disSL_ibs, file=str75)
   })
   try(if(count==100){
-    str100 <- "results100_sce2_2dec_5llms.RData"
+    str100 <- "results100_sce1_9dec_5llms.RData"
     save(IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS,
          eSL_cv_IBS, eSL_test_IBS, 
          IBS_multi_test, censoring_train,

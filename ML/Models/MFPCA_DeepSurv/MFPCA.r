@@ -1,6 +1,50 @@
 library(MFPCA)
 
 mfpca_train = function(multivar, argvals){
+  
+  # univariate FPCA via principal analysis by conditional estimation(PACE)
+  uPACE = function(testData, domain, predData=NULL, nbasis = 5, pve = 0.8, npc = NULL){
+    tmp = funData(domain, testData)
+    if(is.null(predData)){
+      tmp2 = NULL
+    }else{
+      tmp2 = funData(domain, predData)
+    }
+    res = PACE(tmp, tmp2, pve=pve, npc= npc, nbasis=nbasis)
+    return(res)
+  }
+  
+  # mfpc trajectories prediction
+  mfpca_pred = function(score, meanf, psi, n.rho=NULL){
+    p = dim(psi)[1]
+    n = nrow(score)
+    
+    if(is.null(n.rho)){
+      n.rho = ncol(score)
+    }
+    
+    out = NULL
+    for(m in 1:p){
+      out[[m]] = matrix(meanf[[m]], nrow=n, ncol=length(meanf[[m]]), byrow = T ) + score[,1:n.rho]%*%t(psi[m,,1:n.rho])
+    }
+    
+    long.pred = array(data=NA, dim=c(dim(out[[1]])[1],dim(out[[1]])[2],p))
+    for(m in 1:p){
+      long.pred[,,m] = out[[m]]
+    }
+    return(long.pred)
+  }
+  
+  # mfpc score calculation
+  mfpca_score = function(predXi, Cms){
+    rho = matrix(NA, nrow = nrow(predXi), ncol=dim(Cms)[2])
+    for(i in 1:nrow(predXi)){
+      for(m in 1:dim(Cms)[2]){
+        rho[i,m] = predXi[i,]%*%Cms[,m]
+      }
+    }
+    return(rho)
+  }
     
     # multivariate FPCA based on results from uPACE
     mFPCA = function(Xi, phi, p , L, I=I){
@@ -62,6 +106,51 @@ mfpca_train = function(multivar, argvals){
 
 
 mfpca_test = function(multivar.train, multivar.test, argvals, Cms, psi){
+  
+  # univariate FPCA via principal analysis by conditional estimation(PACE)
+  uPACE = function(testData, domain, predData=NULL, nbasis = 5, pve = 0.8, npc = NULL){
+    tmp = funData(domain, testData)
+    if(is.null(predData)){
+      tmp2 = NULL
+    }else{
+      tmp2 = funData(domain, predData)
+    }
+    res = PACE(tmp, tmp2, pve=pve, npc= npc, nbasis=nbasis)
+    return(res)
+  }
+  
+  # mfpc trajectories prediction
+  mfpca_pred = function(score, meanf, psi, n.rho=NULL){
+    p = dim(psi)[1]
+    n = nrow(score)
+    
+    if(is.null(n.rho)){
+      n.rho = ncol(score)
+    }
+    
+    out = NULL
+    for(m in 1:p){
+      out[[m]] = matrix(meanf[[m]], nrow=n, ncol=length(meanf[[m]]), byrow = T ) + score[,1:n.rho]%*%t(psi[m,,1:n.rho])
+    }
+    
+    long.pred = array(data=NA, dim=c(dim(out[[1]])[1],dim(out[[1]])[2],p))
+    for(m in 1:p){
+      long.pred[,,m] = out[[m]]
+    }
+    return(long.pred)
+  }
+  
+  # mfpc score calculation
+  mfpca_score = function(predXi, Cms){
+    rho = matrix(NA, nrow = nrow(predXi), ncol=dim(Cms)[2])
+    for(i in 1:nrow(predXi)){
+      for(m in 1:dim(Cms)[2]){
+        rho[i,m] = predXi[i,]%*%Cms[,m]
+      }
+    }
+    return(rho)
+  }
+  
     multivar.train = as.array(multivar.train)
     multivar.test = as.array(multivar.test)
     multivar.train = ifelse(multivar.train==0, NA, multivar.train)
@@ -87,51 +176,10 @@ mfpca_test = function(multivar.train, multivar.test, argvals, Cms, psi){
 
 
 
-# mfpc score calculation
-mfpca_score = function(predXi, Cms){
-    rho = matrix(NA, nrow = nrow(predXi), ncol=dim(Cms)[2])
-    for(i in 1:nrow(predXi)){
-        for(m in 1:dim(Cms)[2]){
-            rho[i,m] = predXi[i,]%*%Cms[,m]
-        }
-    }
-    return(rho)
-}
 
 
-# mfpc trajectories prediction
-mfpca_pred = function(score, meanf, psi, n.rho=NULL){
-    p = dim(psi)[1]
-    n = nrow(score)
-    
-    if(is.null(n.rho)){
-        n.rho = ncol(score)
-    }
-    
-    out = NULL
-    for(m in 1:p){
-        out[[m]] = matrix(meanf[[m]], nrow=n, ncol=length(meanf[[m]]), byrow = T ) + score[,1:n.rho]%*%t(psi[m,,1:n.rho])
-    }
-    
-    long.pred = array(data=NA, dim=c(dim(out[[1]])[1],dim(out[[1]])[2],p))
-    for(m in 1:p){
-        long.pred[,,m] = out[[m]]
-    }
-    return(long.pred)
-}
 
 
-# univariate FPCA via principal analysis by conditional estimation(PACE)
-uPACE = function(testData, domain, predData=NULL, nbasis = 5, pve = 0.99, npc = NULL){
-    tmp = funData(domain, testData)
-    if(is.null(predData)){
-        tmp2 = NULL
-    }else{
-        tmp2 = funData(domain, predData)
-    }
-    res = PACE(tmp, tmp2, pve=pve, npc= npc, nbasis=nbasis)
-    return(res)
-}
 
 
 

@@ -31,6 +31,34 @@ def get_numpy(df, long = ["Y1","Y2","Y3"], base = ["X1","X2"], obstime = "obstim
     
     return x_long, x_base, e, t, obs_time
 
+#Adapting the function above to use our data set:
+def get_numpy2(df, long = ["Y1","Y2","Y3","Y4","Y5"], base = ["X1", "X2"], obstime = "obstime", max_len=None):
+    df.loc[:,"id_new"] = df.groupby(by="id").grouper.group_info[0] # assign id from 0 to num subjects
+    df.loc[:,"roundtime"] = (df.loc[:,obstime] * 2).round() / 2 # round obstime to nearest 0.5
+    if "visit" not in df:
+        df.loc[:,"visit"] = df.groupby(by="id").cumcount()
+    
+    I = len(np.unique(df.loc[:,"id"]))
+    if max_len is None:
+        max_len = int(np.max(df.loc[:,"roundtime"]) * 2 + 1) # based on 0.5 rounding
+
+    x_long = np.empty((I, max_len, len(long)))
+    x_long[:,:,:] = np.NaN
+    x_base = np.zeros((I, len(base)))
+    for index, row in df.iterrows():
+        ii = int(row.loc["id_new"])
+        jj = int(row.loc["roundtime"])*2  # based on 0.5 rounding
+        x_long[ii,jj,:] = row.loc[long]
+        if jj==0:
+            x_base[ii,:] = row.loc[base]
+    
+    e = df.loc[df["visit"]==1,"event"].values.squeeze()
+    t = df.loc[df["visit"]==1,"time"].values.squeeze()
+    obs_time = np.arange(0, max_len/2, 0.5)
+    
+    return x_long, x_base, e, t, obs_time
+
+
 def sortByTime(x, e, t):
     # sort data by descending survival time
     t_index_desc = torch.argsort(t, descending=True)
