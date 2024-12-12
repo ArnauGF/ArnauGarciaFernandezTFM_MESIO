@@ -1,8 +1,5 @@
-// source: https://github.com/sambrilleman/2018-StanCon-Notebook/blob/master/Stan/jm.stan
-
-// Note that this file contains extracts from the rstanarm package.
-// Copyright (C) 2015, 2016, 2017 Trustees of Columbia University
-// Copyright (C) 2016, 2017 Sam Brilleman
+// Based on code in: https://github.com/sambrilleman/2018-StanCon-Notebook/blob/master/Stan/jm.stan
+// adaptations to include indicators have been done
   
 functions {
 
