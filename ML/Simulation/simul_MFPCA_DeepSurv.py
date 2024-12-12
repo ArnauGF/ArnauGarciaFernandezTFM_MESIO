@@ -7,7 +7,7 @@ import sys
 sys.path.append(PATH)
 from Models.MFPCA_DeepSurv.DeepSurv import DeepSurv
 from Models.MFPCA_DeepSurv.functions import (get_numpy, get_numpy2, sortByTime, surv_loss, BreslowEstimator)
-from Models.metrics import (AUC, Brier, Brier2, IBS)
+from Models.metrics import (Brier, Brier2, IBS)
 from Simulation.data_simulation_base import simulate_JM_base
 #from Simulation.data_simulation_nonPH import simulate_JM_nonPH
 

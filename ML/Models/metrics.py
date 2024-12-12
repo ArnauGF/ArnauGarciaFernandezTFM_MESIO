@@ -6,18 +6,12 @@ import rpy2.robjects as ro
 import rpy2.robjects.numpy2ri
 rpy2.robjects.numpy2ri.activate()
 #PATH = "/Users/arnaugarcia/Desktop/TFM_super/ML/Models"
-ro.r.source("/Users/arnaugarcia/Desktop/TFM_super/ML/Models/AUC_BS.r")
-AUC_R = ro.globalenv['AUC']
+ro.r.source("/Users/arnaugarcia/Desktop/TFM_super/ML/Models/BS.r")
 Brier_R = ro.globalenv['Brier']
 Brier_R_2 = ro.globalenv['Brier2']
 
 def get_integrated(x, times):
     return np.trapz(x,times) / (max(times)-min(times))
-
-def AUC(x, event, time, pred_times):
-    auc = AUC_R(surv=x, event=event, time=time, predtimes=pred_times)[0]
-    iauc = get_integrated(auc, pred_times)
-    return auc, iauc
 
 def Brier(x, event, time, event_train, time_train, LT, pred_windows):
     bs = Brier_R(surv=x, event=event, time=time,
