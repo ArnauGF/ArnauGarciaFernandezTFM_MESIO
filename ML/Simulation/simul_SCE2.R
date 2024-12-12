@@ -10,7 +10,10 @@
 ###########################################################################
 ###########################################################################
 library(MASS)
-
+num_datasets <- 100
+n <- 300 # number of subjects
+n_test <- 300
+K <- 17
 #####D matrix for the random effects:
 set.seed(12345)
 sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
@@ -24,14 +27,13 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
                    runif(1,0,1.5), runif(10, -0.005, 0.005),
                    runif(1,0,1.5))
                  ,nrow = 10)
+treat <- rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
+             , each = K)
 
-
-
-
-
+keep_objects <- c(num_datasets)
 
 ### We start the loop for the simulation:
-
+for(count in 1:num_datasets){
   ############################
   #We generate the dataset
   ###########################
@@ -62,12 +64,12 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
                    time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                    visit = c(replicate(n, seq(1,K))),
                    sex = rep(gl(2, n/2, labels = c("male", "female")), each = K),
-                   treatment = rep(gl(2, n/2, labels = c("A", "B")), each = K))
+                   treatment = treat)
   DF_test <- data.frame(id = rep(seq_len(n_test), each = K),
                         time = c(replicate(n_test, obstime_gen(K, t_max, min_sep))),
                         visit = c(replicate(n, seq(1,K))),
                         sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K),
-                        treatment = rep(gl(2, n/2, labels = c("A", "B")), each = K))
+                        treatment = treat)
   
   
   # design matrices for the fixed and random effects for longitudinal submodels
@@ -254,9 +256,6 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   upp_Cens <- 5 # fixed Type I censoring time
   #shape_wb <- 6.5 # shape Weibull
   shape_wb <- 3.5
-  
-  #es el shape de la weibull que hace que tomemos más valores o que se acumulen más
-  
   alpha <- c(0.8, 0.61, 0.38, 0.222, 0.74) # association coefficients
   #alpha <- c(0.8, 0.61, 0.38, 0.222, 0.14)
   #gammas <- c("(Intercept)" = -15, "sex" = -0.5)
@@ -402,7 +401,23 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
   DF.id <- DF[!duplicated(DF$id),]
   DF_test.id <- DF_test[!duplicated(DF_test$id),]
   
+  #save DF_count, and append into the keep objects vector
+  assign(paste0("DF_", count), DF)
+  #assign(paste0("DF.id_", count), DF.id)
+  assign(paste0("DF_test_", count), DF_test)
+  #assign(paste0("DF_test.id_", count), DF_test.id)
+  
+  
+  current_dat <- c(paste0("DF_", count), paste0("DF_test_", count))
+  keep_objects <- c(keep_objects, current_dat)
+  ######################################
+  #END FOR
+  ######################################
+}
+  
   #Removing all the global environment except DF, DF_test:
-  keep_objects <- c("DF", "DF_test", "DF_all", "DF_test_all", "DF.id", "DF_test.id")
   rm(list = setdiff(ls(), keep_objects))
+  
+  #Saving the global environment in RData file
+  save.image(file = "SceII_L5_LLMs_100df.RData")
   
