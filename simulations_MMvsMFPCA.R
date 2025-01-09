@@ -1,0 +1,627 @@
+#Simulation study multivariate MM vs MFPCA
+
+###########################################################################
+###########################################################################
+# General settings
+# - L=3 (stan_mvmer() accepts max 3 outcomes)
+# - Observations times in a fixed grid every 0.5. Visits every 5 or 3 or 1 year
+#   with a noise to have realistic data (each possibility is a different scenario)
+#.  by the moment the noise is doing summing U(-0.5,0.5)
+# - We focus on dropout as a missingness mechanism, we use 30% and 60% of dropout
+# - stan_mvmer() function from rstanarm package to fit multivariate MM under
+#   the Bayesian framework
+# - MFPCA R package to conduct MFPCA anlaysis
+###########################################################################
+###########################################################################
+
+###########################################################################
+#SCENARIO I:
+# - MCAR: individual drops out at time t_{ij} with a probability determined
+#   by a logistic model with t_{ij} as a predictor
+# - Visits every year with +-0.5 noise, 
+# - 30% of dropout
+###########################################################################
+library(dplyr)
+library(tidyr)
+library(MFPCA)
+library(rstanarm)
+
+get_numpy <- function(df, long = c("Y1", "Y2", "Y3"), base = c("X1", "X2"), obstime = "obstime", max_len = NULL) {
+  
+  # Step 1: Assign a new id ('id_new') to each subject
+  df <- df %>%
+    group_by(id) %>%
+    mutate(id_new = as.numeric(as.factor(id)) - 1) # 'id_new' assigned from 0 to num subjects
+  
+  # Step 2: Round 'obstime' to the nearest 0.5 and store it in 'roundtime'
+  df <- df %>%
+    mutate(roundtime = round(2 * !!sym(obstime)) / 2)
+  
+  # Step 3: Create 'visit' column if it doesn't exist
+  if (!"visit" %in% names(df)) {
+    df <- df %>%
+      group_by(id) %>%
+      mutate(visit = row_number() - 1)
+  }
+  
+  # Step 4: Number of unique subjects
+  I <- n_distinct(df$id)
+  
+  # Step 5: Calculate max_len if it's NULL
+  if (is.null(max_len)) {
+    max_len <- as.integer(max(df$roundtime) * 2 + 1) # based on 0.5 rounding
+  }
+  
+  # Step 6: Initialize 'x_long' (3D array) and 'x_base' (2D matrix)
+  x_long <- array(NA, dim = c(I, max_len, length(long)))
+  x_base <- matrix(0, nrow = I, ncol = length(base))
+  
+  # Step 7: Populate 'x_long' and 'x_base'
+  df %>%
+    group_by(id) %>%
+    rowwise() %>%
+    do({
+      ii <- .$id_new[1] + 1 # R is 1-based indexing
+      jj <- as.integer(.$roundtime[1] * 2) + 1 # Adjust for R's 1-based indexing
+      
+      if (!is.na(.$visit) && .$visit == 0) {
+        x_base[ii, ] <- unlist(.[base])
+      }
+      
+      x_long[ii, jj, ] <- unlist(.[long])
+      return(NULL)
+    })
+  
+  
+  # Step 9: Create 'obs_time' (sequence from 0 to max_len / 2, by 0.5)
+  obs_time <- seq(0, max_len / 2, by = 0.5)
+  
+  return(list(x_long = x_long, x_base = x_base, obs_time = obs_time))
+}
+
+
+library(MASS)
+num_datasets <- 100
+n <- 300 # number of subjects
+n_test <- 300
+K <- 15
+#####D matrix for the random effects:
+set.seed(12345)
+sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5))
+                 ,nrow = 10)
+treat <- rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
+             ,each = K)
+
+for(count in 1:num_datasets){
+  ############################
+  #We generate the dataset
+  ###########################
+  n <- 300 # number of subjects
+  n_test <- 300
+  K <- 15 # number of measurements per subject
+  t_max <- 10 # maximum follow-up time
+  min_sep <- 0.5
+  
+  obstime_gen <- function(K, t_max, min_sep){
+    obstime <- numeric(K)
+    obstime <- c(0, sort(runif(K - 1, 0, t_max)))
+    for(i in 2:K){
+      alpha <- obstime[i] - obstime[i-1]
+      if(alpha < min_sep){
+        obstime[i] <- obstime[i] + 0.51 - alpha
+      }
+    }
+    return(obstime)
+  }
+  
+  # we construct a data frame with the design:
+  # everyone has a baseline measurement, and then measurements at random 
+  # follow-up times up to t_max 
+  # !! for Machine Learning purposes: two consecutive measurements will have
+  #more than 0.5 of
+  DF <- data.frame(id = rep(seq_len(n), each = K),
+                   time = c(replicate(n, c(0,1:(K-1) + runif(K-1, -0.5,0.5) ))),
+                   visit = c(replicate(n, seq(1,K))),
+                   sex = rep(gl(2, n/2, labels = c("male", "female")), each = K),
+                   treatment = treat)
+  DF_test <- data.frame(id = rep(seq_len(n_test), each = K),
+                        time = c(replicate(n_test, c(0,1:(K-1) + runif(K-1, -0.5,0.5) ))),
+                        visit = c(replicate(n, seq(1,K))),
+                        sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K),
+                        treatment = treat)
+  
+  
+  # design matrices for the fixed and random effects for longitudinal submodels
+  X1 <- model.matrix(~ sex * time, data = DF)
+  Z1 <- model.matrix(~ time, data = DF)
+  
+  X2 <- model.matrix(~ treatment * time, data = DF )
+  Z2 <- model.matrix(~ time, data = DF)
+  
+  #X3 <- model.matrix(~ time, data = DF )
+  #Z3 <- model.matrix(~ time, data = DF)
+  
+  X3 <- model.matrix(~ sqrt(time), data = DF )
+  Z3 <- model.matrix(~ sqrt(time), data = DF)
+  
+  #X4 <- model.matrix(~ sex + time, data = DF)
+  #Z4 <- model.matrix(~ time, data = DF)
+  
+  X4 <- model.matrix(~ sex + time , data = DF)
+  Z4 <- model.matrix(~ time, data = DF)
+  
+  #X5 <- model.matrix(~ time, data = DF)
+  #Z5 <- model.matrix(~ time, data = DF)
+  
+  X5 <- model.matrix(~ treatment + time, data = DF)
+  Z5 <- model.matrix(~ time, data = DF)
+  
+  ####for test data set
+  X1_test <- model.matrix(~ sex * time, data = DF_test)
+  Z1_test <- model.matrix(~ time, data = DF_test)
+  
+  X2_test <- model.matrix(~ treatment * time, data = DF_test )
+  Z2_test <- model.matrix(~ time, data = DF_test)
+  
+  #X3_test <- model.matrix(~ time, data = DF_test )
+  #Z3_test <- model.matrix(~ time, data = DF_test)
+  
+  X3_test <- model.matrix(~ sqrt(time), data = DF_test )
+  Z3_test <- model.matrix(~ sqrt(time), data = DF_test)
+  
+  #X4_test <- model.matrix(~ sex + time, data = DF_test)
+  #Z4_test <- model.matrix(~ time, data = DF_test)
+  
+  X4_test <- model.matrix(~ sex + time, data = DF_test)
+  Z4_test <- model.matrix(~ time, data = DF_test)
+  
+  #X5_test <- model.matrix(~ time, data = DF_test)
+  #Z5_test <- model.matrix(~ time, data = DF_test)
+  
+  X5_test <- model.matrix(~ treatment + time, data = DF_test)
+  Z5_test <- model.matrix(~ time, data = DF_test)
+  
+  #Simulate random effects
+  #################################################
+  b <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
+  b_test <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
+  
+  
+  #Simulate first longitudinal outcome
+  ###############################################
+  betas1 <- c(-2.2, -0.25, 1.24, -0.05) # fixed effects coefficients
+  sigma1 <- 0.125 # errors sd
+  
+  # random effects
+  b1 <-  b[, c(1,2)]
+  # linear predictor
+  eta_y1 <- as.vector(X1 %*% betas1 + rowSums(Z1 * b1[DF$id, ]))
+  # we simulate normal longitudinal data
+  DF$y1 <- rnorm(n * K, mean = eta_y1, sd = sigma1)
+  # we assume that values below 4 are not observed, and set equal to 0
+  DF$ind1 <- as.numeric(DF$y1 < -4)
+  DF$y1 <- pmax(DF$y1, -4)
+  
+  #Test data:
+  # we simulate random effects
+  b1_test <- b_test[, c(1,2)] 
+  # linear predictor
+  eta_y1_test <- as.vector(X1_test %*% betas1 + rowSums(Z1_test * b1_test[DF_test$id, ]))
+  # we simulate normal longitudinal data
+  DF_test$y1 <- rnorm(n_test * K, mean = eta_y1_test, sd = sigma1)
+  # we assume that values below 4 are not observed, and set equal to 0
+  DF_test$ind1 <- as.numeric(DF_test$y1 < -4)
+  DF_test$y1 <- pmax(DF_test$y1, -4)
+  
+  #Simulate second longitudinal outcome
+  ###############################################
+  betas2 <- c(-1.8, -0.06, 0.5, 0.06) # fixed effects coefficients
+  betas2 <- c(10, -0.02, 2.222, 0.07) # fixed effects coefficients
+  sigma2 <- 0.25 # errors sd
+  
+  # we simulate random effects
+  b2 <- b[, c(3,4)]
+  # linear predictor
+  eta_y2 <- as.vector(X2 %*% betas2 + rowSums(Z2 * b2[DF$id, ]))
+  # we simulate normal longitudinal data
+  DF$y2 <- rnorm(n * K, mean = eta_y2, sd = sigma2)
+  # we assume that values below 0 are not observed, and set equal to 0
+  #DF$ind2 <- as.numeric(DF$y2 < -4)
+  #DF$y2 <- pmax(DF$y2, -4)
+  
+  ####Test data
+  # we simulate random effects
+  b2_test <- b_test[, c(3,4)]
+  # linear predictor
+  eta_y2_test <- as.vector(X2_test %*% betas2 + rowSums(Z2_test * b2[DF_test$id, ]))
+  # we simulate normal longitudinal data
+  DF_test$y2 <- rnorm(n_test * K, mean = eta_y2_test, sd = sigma2)
+  # we assume that values below 0 are not observed, and set equal to 0
+  #DF_test$ind2 <- as.numeric(DF_test$y2 < -4)
+  #DF_test$y2 <- pmax(DF_test$y2, -4)
+  
+  #Simulate third longitudinal outcome
+  ###############################################
+  betas3 <- c(-2.5, 0.0333) # fixed effects coefficients
+  betas3 <- c(2.5, 1) # fixed effects coefficients
+  sigma3 <- 0.25 # errors sd
+  
+  
+  # we simulate random effects
+  b3 <- b[, c(5,6)]
+  # linear predictor
+  eta_y3 <- as.vector(X3 %*% betas3 + 
+                        rowSums(Z3 * b3[DF$id, ]))
+  # we simulate normal longitudinal data
+  DF$y3 <- rnorm(n * K, mean = eta_y3, sd = sigma3)
+  # we assume that values below 0 are not observed, and set equal to 0
+  
+  
+  ########Test data
+  # we simulate random effects
+  b3_test <- b_test[, c(5,6)]
+  # linear predictor
+  eta_y3_test <- as.vector(X3_test %*% betas3 + rowSums(Z3_test * b3_test[DF_test$id, ]))
+  # we simulate normal longitudinal data
+  DF_test$y3 <- rnorm(n_test * K, mean = eta_y3_test, sd = sigma3)
+  
+  #Simulate forth longitudinal outcome
+  ###############################################
+  betas4 <- c(0.01, 0.5, -0.31416) # fixed effects coefficients
+  betas4 <- c(80, -4.25, -3.789) # fixed effects coefficients
+  
+  # we simulate random effects
+  b4 <- b[, c(7,8)]
+  # linear predictor
+  eta_y4 <- as.vector(X4 %*% betas4 + rowSums(Z4 * b4[DF$id, ]))
+  # mean of the binomial distribution
+  #mu_y4 <- plogis(eta_y4)
+  # we simulate binomial longitudinal data
+  #DF$y4 <- rbinom(n * K, size = 1, prob = mu_y4)
+  DF$y4 <- rnorm(n_test * K, mean = eta_y4, sd = sigma3)
+  
+  #####Test data
+  # we simulate random effects
+  b4_test <- b_test[, c(7,8)]
+  # linear predictor
+  eta_y4_test <- as.vector(X4_test %*% betas4 + rowSums(Z4_test * b4_test[DF_test$id, ]))
+  # mean of the binomial distribution
+  #mu_y4_test <- plogis(eta_y4_test)
+  # we simulate binomial longitudinal data
+  #DF_test$y4 <- rbinom(n_test * K, size = 1, prob = mu_y4_test)
+  DF_test$y4 <- rnorm(n_test * K, mean = eta_y4_test, sd = sigma3)
+  
+  #Simulate fifth longitudinal outcome
+  ###############################################
+  betas5 <- c(1, 0.155, 0.12345) # fixed effects coefficients
+  betas5 <- c(70, -5.44, -3.761289) # fixed effects coefficients
+  
+  # we simulate random effects
+  b5 <- b[, c(9,10)]
+  # linear predictor
+  eta_y5 <- as.vector(X5 %*% betas5 + rowSums(Z5 * b5[DF$id, ]))
+  # mean of the binomial distribution
+  #mu_y5 <- plogis(eta_y5)
+  # we simulate binomial longitudinal data
+  #DF$y5 <- rbinom(n * K, size = 1, prob = mu_y5)
+  DF$y5 <- rnorm(n_test * K, mean = eta_y5, sd = sigma3)
+  
+  ####Test data
+  # we simulate random effects
+  b5_test <- b_test[, c(9,10)]
+  # linear predictor
+  eta_y5_test <- as.vector(X5_test %*% betas5 + rowSums(Z5_test * b5_test[DF_test$id, ]))
+  # mean of the binomial distribution
+  #mu_y5_test <- plogis(eta_y5_test)
+  # we simulate binomial longitudinal data
+  #DF_test$y5 <- rbinom(n_test * K, size = 1, prob = mu_y5_test)
+  
+  DF_test$y5 <- rnorm(n_test * K, mean = eta_y5_test, sd = sigma3)
+  
+  #If using admin censoring:
+  #AdminCens <- 10
+  
+  # we keep the longitudinal measurements before the event times: TRAIN
+  #DF <- DF[DF$time <= AdminCens, ]
+
+  # we keep the longitudinal measurements before the event times: TEST
+  #DF_test <- DF_test[DF_test$time <= AdminCens, ]
+  
+  #Data set with just one obs per individual
+  #DF.id <- DF[!duplicated(DF$id),]
+  #DF_test.id <- DF_test[!duplicated(DF_test$id),]
+  
+  ######################################
+  #Fitting multivariate MM models
+  # - We use snat_mvmer() from rstanarm
+  # - We fit the true model plus two
+  #.  (or 3) more models
+  ######################################
+  
+  # fitting the true model
+  true_model <- stan_mvmer(
+    formula = list(
+      y1 ~ sex * time + (time | id),
+      y3 ~ sqrt(time) + (sqrt(time) | id),
+      y5 ~ treatment + time + (time | id)),
+    data = DF,
+    family = list(gaussian, gaussian, gaussian),
+    chains = 3, cores = 2, seed = 12345, iter = 1000)
+  
+  ## We must save metrics to check the convergence of the model (rhat and others
+  ## maybe even some chains)
+  
+  ## We do predictions with training (DF) and testing (DF_test) data
+  
+  #using predict() function
+  
+  mMM1 <- stan_mvmer(
+    formula = list(
+      y1 ~ sex + time + (time | id),
+      y3 ~ treatment + time^2 + (time | id),
+      y5 ~ time + (time | id)),
+    data = DF,
+    family = list(gaussian, gaussian, gaussian),
+    chains = 3, cores = 2, seed = 12345, iter = 1000)
+  
+  ## We must save metrics to check the convergence of the model (rhat and others
+  ## maybe even some chains)
+  
+  ## We do predictions with training (DF) and testing (DF_test) data
+  
+  #using predict() function
+  
+  mMM2 <- stan_mvmer(
+    formula = list(
+      y1 ~ time + (time | id),
+      y3 ~ treatment + (time | id),
+      y5 ~ sex + (time | id)),
+    data = DF,
+    family = list(gaussian, gaussian, gaussian),
+    chains = 3, cores = 2, seed = 12345, iter = 1000)
+  
+  ## We must save metrics to check the convergence of the model (rhat and others
+  ## maybe even some chains)
+  
+  ## We do predictions with training (DF) and testing (DF_test) data
+  
+  #using predict() function
+  
+  mMM3 <- stan_mvmer(
+    formula = list(
+      y1 ~ treatment*time + (time | id),
+      y3 ~ sex + sqrt(time) + (time | id),
+      y5 ~ sex + time + (time | id)),
+    data = DF,
+    family = list(gaussian, gaussian, gaussian),
+    chains = 3, cores = 2, seed = 12345, iter = 1000)
+  
+  ## We must save metrics to check the convergence of the model (rhat and others
+  ## maybe even some chains)
+  
+  ## We do predictions with training (DF) and testing (DF_test) data
+  
+  #using predict() function
+  
+  ######################################
+  #Fitting MFPCA models
+  # - We use mfpca R package
+  # - We fit three different approxs
+  #.  by changing PVE used
+  # - We also fit different models
+  #.  using or nor weights
+  ######################################
+  
+  #We use MFPCA function, we need to build multiFunData object, to do it
+  #we first have to round the observation times to the nearest 0.5
+  DF_mfpca <- DF
+  DF_mfpca <- DF_mfpca %>%
+    mutate(roundtime = round(2 * time) / 2)
+  max_len <- as.integer(max(DF_mfpca$roundtime) * 2 + 1)
+  obs_time <- seq(0, max_len / 2, by = 0.5)
+  
+  #we create an array full of NAs, and we have to take the data
+  #keep NAs for those grid times without an obs, and substitute 
+  #the correspondent observations to the grids with observations
+
+  #we create an empty data frame
+  DF_mfpca2 <- data.frame(id = rep(seq_len(n), each = K*2+1),
+                          time = c(replicate(n, obs_time)),
+                          y1_2 = c(replicate(n, rep(NA, K*2+1))),
+                          y3_2 = c(replicate(n, rep(NA, K*2+1))),
+                          y5_2 = c(replicate(n, rep(NA, K*2+1))))
+  #we put the values
+  # we have to group by id and fill the NAs with values whenever
+  #there is info in that time of the grid
+  df_filled <- DF_mfpca2 %>%
+    left_join(DF_mfpca %>% dplyr::select(id, roundtime, y1, y3, y5), by = c("id", "time" = "roundtime")) %>%
+    mutate(
+      y1_2 = ifelse(is.na(y1_2), y1, y1_2),
+      y3_2 = ifelse(is.na(y3_2), y3, y3_2),
+      y5_2 = ifelse(is.na(y5_2), y5, y5_2)
+    ) %>%
+    dplyr::select(-y1, -y3, -y5)
+  
+  # now we save in 3 different data sets with long format in order to use
+  # funData()
+  df_y1_wide <- df_filled %>%
+    dplyr::select(id, time, y1_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y1_2, 
+                names_prefix = "y1_time_")
+  
+  df_y3_wide <- df_filled %>%
+    dplyr::select(id, time, y3_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y3_2, 
+                names_prefix = "y3_time_")
+  
+  df_y5_wide <- df_filled %>%
+    dplyr::select(id, time, y5_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y5_2, 
+                names_prefix = "y5_time_")
+  
+  #univariate functional data
+  f1 <- funData(obs_time, as.matrix(df_y1_wide[,-1]))
+  f2 <- funData(obs_time, as.matrix(df_y3_wide[,-1]))
+  f3 <- funData(obs_time, as.matrix(df_y5_wide[,-1]))
+  #multivariate functional data class
+  m1 <- multiFunData(list(f1,f2,f3))
+  
+  
+  ## Now, we similarly prepare the data in TEST case
+  DF_mfpca_test <- DF_test
+  DF_mfpca_test <- DF_mfpca_test %>%
+    mutate(roundtime = round(2 * time) / 2)
+  max_len_test <- as.integer(max(DF_mfpca_test$roundtime) * 2 + 1)
+  obs_time_test <- seq(0, max_len_test / 2, by = 0.5)
+  DF_mfpca2_test <- data.frame(id = rep(seq_len(n), each = K*2+1),
+                          time = c(replicate(n, obs_time)),
+                          y1_2 = c(replicate(n, rep(NA, K*2+1))),
+                          y3_2 = c(replicate(n, rep(NA, K*2+1))),
+                          y5_2 = c(replicate(n, rep(NA, K*2+1))))
+  df_filled_test <- DF_mfpca2_test %>%
+    left_join(DF_mfpca_test %>% dplyr::select(id, roundtime, y1, y3, y5), by = c("id", "time" = "roundtime")) %>%
+    mutate(
+      y1_2 = ifelse(is.na(y1_2), y1, y1_2),
+      y3_2 = ifelse(is.na(y3_2), y3, y3_2),
+      y5_2 = ifelse(is.na(y5_2), y5, y5_2)
+    ) %>%
+    dplyr::select(-y1, -y3, -y5)
+  df_y1_wide_test <- df_filled_test %>%
+    dplyr::select(id, time, y1_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y1_2, 
+                names_prefix = "y1_time_")
+  
+  df_y3_wide_test <- df_filled_test %>%
+    dplyr::select(id, time, y3_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y3_2, 
+                names_prefix = "y3_time_")
+  
+  df_y5_wide_test <- df_filled_test %>%
+    dplyr::select(id, time, y5_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y5_2, 
+                names_prefix = "y5_time_")
+  #univariate functional data TEST case
+  f1_test <- funData(obs_time_test, as.matrix(df_y1_wide_test[,-1]))
+  f2_test <- funData(obs_time_test, as.matrix(df_y3_wide_test[,-1]))
+  f3_test <- funData(obs_time_test, as.matrix(df_y5_wide_test[,-1]))
+  #multivariate functional data class TEST case
+  m1_test <- multiFunData(list(f1_test,f2_test,f3_test))
+  
+  #now we use MFPCA function from mfpca R package
+  
+  #We fit with NO weights and pve=0.99
+  mfpca1 <- MFPCA(m1, M = 5, 
+                 uniExpansions = list(list(type="uFPCA", pve = 0.99),
+                                      list(type ="uFPCA", pve=0.99),
+                                      list(type="uFPCA", pve=0.99)),
+                 fit = TRUE)
+  
+  # predict in training data:
+  pred_mfpca1 <- predict(mfpca1)
+  
+  #plot(pred_mfpca1)
+  
+  # predict in testing data:
+  # value "vector" returned by MFPCA seems to be the cms in paper (and ML code)
+  # we compute scores for testing data and we use meanf and psi from training
+  mfpca1_test <- MFPCA(m1_test, M = 5, 
+                  uniExpansions = list(list(type="uFPCA", pve = 0.99),
+                                       list(type ="uFPCA", pve=0.99),
+                                       list(type="uFPCA", pve=0.99)),
+                  fit = TRUE)
+  
+  pred_mfpca1_test <- predict(mfpca1, scores = mfpca1_test$scores)
+  
+  #plot(pred_mfpca1_test)
+  
+  #AQUI YA TENGO TODA LA INFO QUE QUIERO! las predicciones de esto último se 
+  #hacen para cada uno de los puntos de la grid!! También para aquellos donde
+  #hay NA! Por tanto para aquellos puntos estoy haciendo una predicción!
+  #Y es esa predicción la que me tengo que quedar y entrar a comparar con 
+  #la predicción que me puedan devolver los MM
+  
+  
+  
+  ##NOW TENEMOS QUE AVERIGUAR COMO HACER PREDICCIONES, USAMOS LAS COMPOPNENTWS
+  ## Y LO CALCULAMOS A MANIKI, MIRAR FUNCIONES QUE USAMOS EN ML STUFF
+  
+  #First we use the PACE function as in our previous simulations of MfPCA
+  
+  
+  
+  
+  
+  ######################################
+  #END FOR
+  ######################################
+}
+
+
+
+###############################################################
+## Let us do some checks with the longitudinal data simulated 
+## via graphics
+###############################################################
+library(lattice)
+xyplot(y1 ~ time, groups = id,
+       data = DF[1:825,],
+       type = "l" ,xlab="Time",ylab="Y1")
+
+#xyplot(y2 ~ time, groups = id,
+#       data = DF[1:825,],
+#       type = "l" ,xlab="Time",ylab="Y2")
+
+xyplot(y3 ~ time, groups = id,
+       data = DF[1:825,],
+       type = "l" ,xlab="Time",ylab="Y3")
+
+#xyplot(y4 ~ time, groups = id,
+#       data = DF[1:825,],
+#       type = "l" ,xlab="Time",ylab="Y4")
+
+xyplot(y5 ~ time, groups = id,
+       data = DF[1:825,],
+       type = "l" ,xlab="Time",ylab="Y5")
+
+## checking spaghetti plot in test data
+xyplot(y1 ~ time, groups = id,
+       data = DF_test[1:825,],
+       type = "l" ,xlab="Time",ylab="Y1")
+
+xyplot(y3 ~ time, groups = id,
+       data = DF_test[1:825,],
+       type = "l" ,xlab="Time",ylab="Y3")
+
+xyplot(y5 ~ time, groups = id,
+       data = DF_test[1:825,],
+       type = "l" ,xlab="Time",ylab="Y5")
+
+
+# Comparisons simulated data with MFPCA
+xyplot(y1 ~ time, groups = id,
+       data = DF,
+       type = "l" ,xlab="Time",ylab="Y1")
+plot(pred_mfpca1[[1]], add = TRUE, lty = 2)
+
+plot(pred_mfpca1[[1]])
