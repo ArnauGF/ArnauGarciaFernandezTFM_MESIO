@@ -25,61 +25,6 @@ library(dplyr)
 library(tidyr)
 library(MFPCA)
 library(rstanarm)
-
-get_numpy <- function(df, long = c("Y1", "Y2", "Y3"), base = c("X1", "X2"), obstime = "obstime", max_len = NULL) {
-  
-  # Step 1: Assign a new id ('id_new') to each subject
-  df <- df %>%
-    group_by(id) %>%
-    mutate(id_new = as.numeric(as.factor(id)) - 1) # 'id_new' assigned from 0 to num subjects
-  
-  # Step 2: Round 'obstime' to the nearest 0.5 and store it in 'roundtime'
-  df <- df %>%
-    mutate(roundtime = round(2 * !!sym(obstime)) / 2)
-  
-  # Step 3: Create 'visit' column if it doesn't exist
-  if (!"visit" %in% names(df)) {
-    df <- df %>%
-      group_by(id) %>%
-      mutate(visit = row_number() - 1)
-  }
-  
-  # Step 4: Number of unique subjects
-  I <- n_distinct(df$id)
-  
-  # Step 5: Calculate max_len if it's NULL
-  if (is.null(max_len)) {
-    max_len <- as.integer(max(df$roundtime) * 2 + 1) # based on 0.5 rounding
-  }
-  
-  # Step 6: Initialize 'x_long' (3D array) and 'x_base' (2D matrix)
-  x_long <- array(NA, dim = c(I, max_len, length(long)))
-  x_base <- matrix(0, nrow = I, ncol = length(base))
-  
-  # Step 7: Populate 'x_long' and 'x_base'
-  df %>%
-    group_by(id) %>%
-    rowwise() %>%
-    do({
-      ii <- .$id_new[1] + 1 # R is 1-based indexing
-      jj <- as.integer(.$roundtime[1] * 2) + 1 # Adjust for R's 1-based indexing
-      
-      if (!is.na(.$visit) && .$visit == 0) {
-        x_base[ii, ] <- unlist(.[base])
-      }
-      
-      x_long[ii, jj, ] <- unlist(.[long])
-      return(NULL)
-    })
-  
-  
-  # Step 9: Create 'obs_time' (sequence from 0 to max_len / 2, by 0.5)
-  obs_time <- seq(0, max_len / 2, by = 0.5)
-  
-  return(list(x_long = x_long, x_base = x_base, obs_time = obs_time))
-}
-
-
 library(MASS)
 num_datasets <- 100
 n <- 300 # number of subjects
@@ -101,6 +46,64 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
 treat <- rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
              ,each = K)
 
+####### Function to prepare the longitudinal data in the fixed grid format
+grid_longitudinal_data <- function(DF, n, K){
+  DF_mfpca <- DF
+  DF_mfpca <- DF_mfpca %>%
+    mutate(roundtime = round(2 * time) / 2)
+  max_len <- as.integer(max(DF_mfpca$roundtime) * 2 + 1)
+  obs_time <- seq(0, max_len / 2, by = 0.5)
+  
+  #we create an empty data frame, full of NA in the longitudinal outcomes
+  #we create an empty data frame
+  DF_mfpca2 <- data.frame(id = rep(seq_len(n), each = K*2+1),
+                          time = c(replicate(n, obs_time)),
+                          y1_2 = c(replicate(n, rep(NA, K*2+1))),
+                          y3_2 = c(replicate(n, rep(NA, K*2+1))),
+                          y5_2 = c(replicate(n, rep(NA, K*2+1))))
+  #we put the values
+  # we have to group by id and fill the NAs with values whenever
+  #there is info in that time of the grid
+  df_filled <- DF_mfpca2 %>%
+    left_join(DF_mfpca %>% dplyr::select(id, roundtime, y1, y3, y5), by = c("id", "time" = "roundtime")) %>%
+    mutate(
+      y1_2 = ifelse(is.na(y1_2), y1, y1_2),
+      y3_2 = ifelse(is.na(y3_2), y3, y3_2),
+      y5_2 = ifelse(is.na(y5_2), y5, y5_2)
+    ) %>%
+    dplyr::select(-y1, -y3, -y5)
+  
+  # now we save in 3 different data sets with long format in order to use
+  # funData()
+  df_y1_wide <- df_filled %>%
+    dplyr::select(id, time, y1_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y1_2, 
+                names_prefix = "y1_time_")
+  
+  df_y3_wide <- df_filled %>%
+    dplyr::select(id, time, y3_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y3_2, 
+                names_prefix = "y3_time_")
+  
+  df_y5_wide <- df_filled %>%
+    dplyr::select(id, time, y5_2) %>%
+    distinct(id, time, .keep_all = TRUE) %>%   
+    pivot_wider(names_from = time, 
+                values_from = y5_2, 
+                names_prefix = "y5_time_")
+  return(list(df_y1_wide, df_y3_wide, df_y5_wide, obs_time))
+}
+
+######################################################
+######################################################
+##Starting the loop
+######################################################
+######################################################
+
 for(count in 1:num_datasets){
   ############################
   #We generate the dataset
@@ -110,18 +113,6 @@ for(count in 1:num_datasets){
   K <- 15 # number of measurements per subject
   t_max <- 10 # maximum follow-up time
   min_sep <- 0.5
-  
-  obstime_gen <- function(K, t_max, min_sep){
-    obstime <- numeric(K)
-    obstime <- c(0, sort(runif(K - 1, 0, t_max)))
-    for(i in 2:K){
-      alpha <- obstime[i] - obstime[i-1]
-      if(alpha < min_sep){
-        obstime[i] <- obstime[i] + 0.51 - alpha
-      }
-    }
-    return(obstime)
-  }
   
   # we construct a data frame with the design:
   # everyone has a baseline measurement, and then measurements at random 
@@ -340,6 +331,9 @@ for(count in 1:num_datasets){
   #DF.id <- DF[!duplicated(DF$id),]
   #DF_test.id <- DF_test[!duplicated(DF_test$id),]
   
+  
+  ### Here, we should program the DROPOUT!!!
+  
   ######################################
   #Fitting multivariate MM models
   # - We use snat_mvmer() from rstanarm
@@ -421,110 +415,24 @@ for(count in 1:num_datasets){
   #.  using or nor weights
   ######################################
   
-  #We use MFPCA function, we need to build multiFunData object, to do it
-  #we first have to round the observation times to the nearest 0.5
-  DF_mfpca <- DF
-  DF_mfpca <- DF_mfpca %>%
-    mutate(roundtime = round(2 * time) / 2)
-  max_len <- as.integer(max(DF_mfpca$roundtime) * 2 + 1)
-  obs_time <- seq(0, max_len / 2, by = 0.5)
-  
-  #we create an array full of NAs, and we have to take the data
-  #keep NAs for those grid times without an obs, and substitute 
-  #the correspondent observations to the grids with observations
-
-  #we create an empty data frame
-  DF_mfpca2 <- data.frame(id = rep(seq_len(n), each = K*2+1),
-                          time = c(replicate(n, obs_time)),
-                          y1_2 = c(replicate(n, rep(NA, K*2+1))),
-                          y3_2 = c(replicate(n, rep(NA, K*2+1))),
-                          y5_2 = c(replicate(n, rep(NA, K*2+1))))
-  #we put the values
-  # we have to group by id and fill the NAs with values whenever
-  #there is info in that time of the grid
-  df_filled <- DF_mfpca2 %>%
-    left_join(DF_mfpca %>% dplyr::select(id, roundtime, y1, y3, y5), by = c("id", "time" = "roundtime")) %>%
-    mutate(
-      y1_2 = ifelse(is.na(y1_2), y1, y1_2),
-      y3_2 = ifelse(is.na(y3_2), y3, y3_2),
-      y5_2 = ifelse(is.na(y5_2), y5, y5_2)
-    ) %>%
-    dplyr::select(-y1, -y3, -y5)
-  
-  # now we save in 3 different data sets with long format in order to use
-  # funData()
-  df_y1_wide <- df_filled %>%
-    dplyr::select(id, time, y1_2) %>%
-    distinct(id, time, .keep_all = TRUE) %>%   
-    pivot_wider(names_from = time, 
-                values_from = y1_2, 
-                names_prefix = "y1_time_")
-  
-  df_y3_wide <- df_filled %>%
-    dplyr::select(id, time, y3_2) %>%
-    distinct(id, time, .keep_all = TRUE) %>%   
-    pivot_wider(names_from = time, 
-                values_from = y3_2, 
-                names_prefix = "y3_time_")
-  
-  df_y5_wide <- df_filled %>%
-    dplyr::select(id, time, y5_2) %>%
-    distinct(id, time, .keep_all = TRUE) %>%   
-    pivot_wider(names_from = time, 
-                values_from = y5_2, 
-                names_prefix = "y5_time_")
-  
+  #We compute grid longitudinal data:
+  grid_long <- grid_longitudinal_data(DF, n, K)
   #univariate functional data
-  f1 <- funData(obs_time, as.matrix(df_y1_wide[,-1]))
-  f2 <- funData(obs_time, as.matrix(df_y3_wide[,-1]))
-  f3 <- funData(obs_time, as.matrix(df_y5_wide[,-1]))
+  obs_time <- grid_long[[4]]
+  f1 <- funData(obs_time, as.matrix(grid_long[[1]][,-1]))
+  f2 <- funData(obs_time, as.matrix(grid_long[[2]][,-1]))
+  f3 <- funData(obs_time, as.matrix(grid_long[[3]][,-1]))
   #multivariate functional data class
   m1 <- multiFunData(list(f1,f2,f3))
   
   
-  ## Now, we similarly prepare the data in TEST case
-  DF_mfpca_test <- DF_test
-  DF_mfpca_test <- DF_mfpca_test %>%
-    mutate(roundtime = round(2 * time) / 2)
-  max_len_test <- as.integer(max(DF_mfpca_test$roundtime) * 2 + 1)
-  obs_time_test <- seq(0, max_len_test / 2, by = 0.5)
-  DF_mfpca2_test <- data.frame(id = rep(seq_len(n), each = K*2+1),
-                          time = c(replicate(n, obs_time)),
-                          y1_2 = c(replicate(n, rep(NA, K*2+1))),
-                          y3_2 = c(replicate(n, rep(NA, K*2+1))),
-                          y5_2 = c(replicate(n, rep(NA, K*2+1))))
-  df_filled_test <- DF_mfpca2_test %>%
-    left_join(DF_mfpca_test %>% dplyr::select(id, roundtime, y1, y3, y5), by = c("id", "time" = "roundtime")) %>%
-    mutate(
-      y1_2 = ifelse(is.na(y1_2), y1, y1_2),
-      y3_2 = ifelse(is.na(y3_2), y3, y3_2),
-      y5_2 = ifelse(is.na(y5_2), y5, y5_2)
-    ) %>%
-    dplyr::select(-y1, -y3, -y5)
-  df_y1_wide_test <- df_filled_test %>%
-    dplyr::select(id, time, y1_2) %>%
-    distinct(id, time, .keep_all = TRUE) %>%   
-    pivot_wider(names_from = time, 
-                values_from = y1_2, 
-                names_prefix = "y1_time_")
-  
-  df_y3_wide_test <- df_filled_test %>%
-    dplyr::select(id, time, y3_2) %>%
-    distinct(id, time, .keep_all = TRUE) %>%   
-    pivot_wider(names_from = time, 
-                values_from = y3_2, 
-                names_prefix = "y3_time_")
-  
-  df_y5_wide_test <- df_filled_test %>%
-    dplyr::select(id, time, y5_2) %>%
-    distinct(id, time, .keep_all = TRUE) %>%   
-    pivot_wider(names_from = time, 
-                values_from = y5_2, 
-                names_prefix = "y5_time_")
+  # Grid longitudinal data in TEST:
+  grid_long_test <- grid_longitudinal_data(DF_test, n, K)
   #univariate functional data TEST case
-  f1_test <- funData(obs_time_test, as.matrix(df_y1_wide_test[,-1]))
-  f2_test <- funData(obs_time_test, as.matrix(df_y3_wide_test[,-1]))
-  f3_test <- funData(obs_time_test, as.matrix(df_y5_wide_test[,-1]))
+  obs_time_test <- grid_long_test[[4]]
+  f1_test <- funData(obs_time_test, as.matrix(grid_long_test[[1]][,-1]))
+  f2_test <- funData(obs_time_test, as.matrix(grid_long_test[[2]][,-1]))
+  f3_test <- funData(obs_time_test, as.matrix(grid_long_test[[3]][,-1]))
   #multivariate functional data class TEST case
   m1_test <- multiFunData(list(f1_test,f2_test,f3_test))
   
@@ -560,6 +468,13 @@ for(count in 1:num_datasets){
   #hay NA! Por tanto para aquellos puntos estoy haciendo una predicción!
   #Y es esa predicción la que me tengo que quedar y entrar a comparar con 
   #la predicción que me puedan devolver los MM
+  
+  #Cuando tenemos el predict(MFPCAfit), el objeto que pred_mfpca1[[1]]@X es
+  # una matriz n X max_length +1, ie cada fila es un individuo y cada columna
+  # es uno de los puntos de la fixed time grid. Y esto para el outcome 
+  # longitudinal 1 
+  # Lo que tenemos aquí es una predicción para cada punto de la fixed grid
+  # del outcome longitudinal 1.
   
   
   
@@ -625,3 +540,75 @@ xyplot(y1 ~ time, groups = id,
 plot(pred_mfpca1[[1]], add = TRUE, lty = 2)
 
 plot(pred_mfpca1[[1]])
+
+
+
+
+#####Observation generation function, to be used if we do not have enough data
+# because time of obs lie within a time window less than 0.5, and then a lot
+# of data is ignored
+obstime_gen <- function(K, t_max, min_sep){
+  obstime <- numeric(K)
+  obstime <- c(0, sort(runif(K - 1, 0, t_max)))
+  for(i in 2:K){
+    alpha <- obstime[i] - obstime[i-1]
+    if(alpha < min_sep){
+      obstime[i] <- obstime[i] + 0.51 - alpha
+    }
+  }
+  return(obstime)
+}
+
+##### Function to put in the correct format the longitudinal data to use MFPCA
+get_numpy <- function(df, long = c("Y1", "Y2", "Y3"), base = c("X1", "X2"), obstime = "obstime", max_len = NULL) {
+  
+  # Step 1: Assign a new id ('id_new') to each subject
+  df <- df %>%
+    group_by(id) %>%
+    mutate(id_new = as.numeric(as.factor(id)) - 1) # 'id_new' assigned from 0 to num subjects
+  
+  # Step 2: Round 'obstime' to the nearest 0.5 and store it in 'roundtime'
+  df <- df %>%
+    mutate(roundtime = round(2 * !!sym(obstime)) / 2)
+  
+  # Step 3: Create 'visit' column if it doesn't exist
+  if (!"visit" %in% names(df)) {
+    df <- df %>%
+      group_by(id) %>%
+      mutate(visit = row_number() - 1)
+  }
+  
+  # Step 4: Number of unique subjects
+  I <- n_distinct(df$id)
+  
+  # Step 5: Calculate max_len if it's NULL
+  if (is.null(max_len)) {
+    max_len <- as.integer(max(df$roundtime) * 2 + 1) # based on 0.5 rounding
+  }
+  
+  # Step 6: Initialize 'x_long' (3D array) and 'x_base' (2D matrix)
+  x_long <- array(NA, dim = c(I, max_len, length(long)))
+  x_base <- matrix(0, nrow = I, ncol = length(base))
+  
+  # Step 7: Populate 'x_long' and 'x_base'
+  df %>%
+    group_by(id) %>%
+    rowwise() %>%
+    do({
+      ii <- .$id_new[1] + 1 # R is 1-based indexing
+      jj <- as.integer(.$roundtime[1] * 2) + 1 # Adjust for R's 1-based indexing
+      
+      if (!is.na(.$visit) && .$visit == 0) {
+        x_base[ii, ] <- unlist(.[base])
+      }
+      
+      x_long[ii, jj, ] <- unlist(.[long])
+      return(NULL)
+    })
+  
+  
+  # Step 9: Create 'obs_time' (sequence from 0 to max_len / 2, by 0.5)
+  obs_time <- seq(0, max_len / 2, by = 0.5)
+  
+  return(list(x_long = x_long, x_base = x_base, obs_time = obs_time))
+}
