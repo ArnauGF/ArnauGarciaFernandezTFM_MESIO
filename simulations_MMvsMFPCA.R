@@ -333,6 +333,14 @@ for(count in 1:num_datasets){
   
   
   ### Here, we should program the DROPOUT!!!
+  #probs <- nrow(DF)
+  #for(i in 1:n){
+  #  DF_subset <- DF %>% filter(id == 1)
+  #  for(j in 1:nrow(DF_subset)){
+  #    
+  #  }
+  #}
+  
   
   ######################################
   #Fitting multivariate MM models
