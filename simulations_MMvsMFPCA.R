@@ -98,6 +98,23 @@ grid_longitudinal_data <- function(DF, n, K){
   return(list(df_y1_wide, df_y3_wide, df_y5_wide, obs_time))
 }
 
+simulate_dropout <- function(data) {
+  # Find the first time when dropout == 1
+  dropout_time <- data %>% filter(dropout == 1) %>% slice(1) %>% pull(time)
+  
+  # If a dropout is found, set all subsequent longitudinal variables to NA
+  if (length(dropout_time) > 0) {
+    data <- data %>%
+      mutate(across(c(y1, y3, y5), ~ ifelse(time >= dropout_time, NA, .)))
+  }
+  
+  return(data)
+}
+
+counting_missing_data <- function(data, n, K){
+  return(sum(is.na(data$y1))/(n*K))
+}
+
 ######################################################
 ######################################################
 ##Starting the loop
@@ -333,14 +350,36 @@ for(count in 1:num_datasets){
   
   
   ### Here, we should program the DROPOUT!!!
-  #probs <- nrow(DF)
-  #for(i in 1:n){
-  #  DF_subset <- DF %>% filter(id == 1)
-  #  for(j in 1:nrow(DF_subset)){
-  #    
-  #  }
-  #}
+  param1 <- -4
+  param2 <- 0.2
+  probs_vec <- numeric(n*K)
+  kk <- 1
+  for(i in 1:n){
+    for(j in 1:K){
+      if((kk-1)%%K==0){
+        probs_vec[kk] <- 0
+      } else{
+        thet <- param1 + param2*DF[DF$id==i,]$time[j]
+        probs_vec[kk] <- 1/(1+exp(-thet))
+      }
+      kk <- kk + 1
+    }
+  }
   
+  DF$probs_drop <- probs_vec
+  DF$dropout <- rbinom(n*K, size = 1, prob = probs_vec)
+  
+  ###Putting NAs after dropout
+  #DF_complete <- DF
+  DF_miss <- DF %>%
+    group_by(id) %>%
+    group_modify(~ simulate_dropout(.x)) %>%
+    ungroup()
+  
+  #counting_missing_data(DF_miss, n, K)
+  
+  ###OBS!!!!!
+  ## DF_miss contiene el data frame con missing data!!
   
   ######################################
   #Fitting multivariate MM models
@@ -424,7 +463,7 @@ for(count in 1:num_datasets){
   ######################################
   
   #We compute grid longitudinal data:
-  grid_long <- grid_longitudinal_data(DF, n, K)
+  grid_long <- grid_longitudinal_data(DF_miss, n, K)
   #univariate functional data
   obs_time <- grid_long[[4]]
   f1 <- funData(obs_time, as.matrix(grid_long[[1]][,-1]))
@@ -447,11 +486,14 @@ for(count in 1:num_datasets){
   #now we use MFPCA function from mfpca R package
   
   #We fit with NO weights and pve=0.99
-  mfpca1 <- MFPCA(m1, M = 5, 
-                 uniExpansions = list(list(type="uFPCA", pve = 0.99),
-                                      list(type ="uFPCA", pve=0.99),
-                                      list(type="uFPCA", pve=0.99)),
+  mfpca1 <- MFPCA(m1, M = 4, 
+                 uniExpansions = list(list(type="uFPCA", pve = 0.9),
+                                      list(type ="uFPCA", pve=0.9),
+                                      list(type="uFPCA", pve=0.9)),
                  fit = TRUE)
+  
+  
+  ###OBS: we have to adjust M and pve depending on % of missing data we have 
   
   # predict in training data:
   pred_mfpca1 <- predict(mfpca1)
@@ -511,6 +553,14 @@ xyplot(y1 ~ time, groups = id,
        data = DF[1:825,],
        type = "l" ,xlab="Time",ylab="Y1")
 
+xyplot(y1 ~ time, groups = id,
+       data = DF_miss[1:825,],
+       type = "l" ,xlab="Time",ylab="Y1")
+
+xyplot(y1 ~ time, groups = id,
+       data = DF,
+       type = "l" ,xlab="Time",ylab="Y1")
+
 #xyplot(y2 ~ time, groups = id,
 #       data = DF[1:825,],
 #       type = "l" ,xlab="Time",ylab="Y2")
@@ -519,12 +569,32 @@ xyplot(y3 ~ time, groups = id,
        data = DF[1:825,],
        type = "l" ,xlab="Time",ylab="Y3")
 
+xyplot(y3 ~ time, groups = id,
+       data = DF_miss[1:825,],
+       type = "l" ,xlab="Time",ylab="Y3")
+
+xyplot(y3 ~ time, groups = id,
+       data = DF,
+       type = "l" ,xlab="Time",ylab="Y3")
+
 #xyplot(y4 ~ time, groups = id,
 #       data = DF[1:825,],
 #       type = "l" ,xlab="Time",ylab="Y4")
 
 xyplot(y5 ~ time, groups = id,
        data = DF[1:825,],
+       type = "l" ,xlab="Time",ylab="Y5")
+
+xyplot(y5 ~ time, groups = id,
+       data = DF_miss[1:825,],
+       type = "l" ,xlab="Time",ylab="Y5")
+
+xyplot(y5 ~ time, groups = id,
+       data = DF,
+       type = "l" ,xlab="Time",ylab="Y5")
+
+xyplot(y5 ~ time, groups = id,
+       data = DF_miss,
        type = "l" ,xlab="Time",ylab="Y5")
 
 ## checking spaghetti plot in test data
@@ -620,3 +690,23 @@ get_numpy <- function(df, long = c("Y1", "Y2", "Y3"), base = c("X1", "X2"), obst
   
   return(list(x_long = x_long, x_base = x_base, obs_time = obs_time))
 }
+
+#################################################################
+## Calibrating parameters for dropout
+#################################################################
+param1 <- -2
+param2 <- 0.005
+probs_vec <- numeric(n*K)
+kk <- 1
+for(i in 1:n){
+  for(j in 1:K){
+    thet <- param1 + param2*DF[DF$id==i,]$time[j]
+    probs_vec[kk] <- 1/(1+exp(-thet))
+    kk <- kk + 1
+  }
+}
+probs_vec[1:15]
+
+simusimu <- rbinom(n*K, size = 1, prob = probs_vec)
+
+DF$dropout <- simusimu
