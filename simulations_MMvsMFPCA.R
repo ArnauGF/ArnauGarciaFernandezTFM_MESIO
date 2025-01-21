@@ -26,6 +26,7 @@ library(tidyr)
 library(MFPCA)
 library(rstanarm)
 library(MASS)
+library(bayesplot)
 num_datasets <- 100
 n <- 300 # number of subjects
 n_test <- 300
@@ -397,6 +398,21 @@ for(count in 1:num_datasets){
     data = DF,
     family = list(gaussian, gaussian, gaussian),
     chains = 3, cores = 2, seed = 12345, iter = 1000)
+  
+  preds_tmod <- posterior_predict(true_model, m=1)
+  preds_tmod_y2 <- posterior_predict(true_model, m=2)
+  preds_tmod_y3 <- posterior_predict(true_model, m=3)
+  
+  ## we have to use posterior_predict() function to do the predictions, also
+  # we have to use m=l to indicate the longitudinal outcome we want to predict
+  ## with this we have 1500 (in this case) samples of the 4500 longitudinal values
+  ## for each longitudinal outcome. We can get the mean, and then work 
+  ## with the point estimate of the prediction. Without mean we have the predictive
+  ## posterior distribution of the values.
+  
+  #posteriorss <- as.matrix(true_model)
+  
+  #mcmc_trace(posteriorss[, "y1|(Intercept)"])
   
   ## We must save metrics to check the convergence of the model (rhat and others
   ## maybe even some chains)
