@@ -27,9 +27,9 @@ library(MFPCA)
 library(rstanarm)
 library(MASS)
 library(bayesplot)
-num_datasets <- 100
-n <- 250 # number of subjects
-n_test <- 250
+num_datasets <- 50
+n <- 200 # number of subjects
+n_test <- 200
 K <- 10
 #####D matrix for the random effects:
 set.seed(12345)
@@ -113,6 +113,21 @@ counting_missing_data <- function(data, n, K){
   return(sum(is.na(data$y1))/(n*K))
 }
 
+
+list_pred_mfpca1 <- list()
+list_pred_mfpca1_test <- list()  
+list_preds_tmod_y1_miss <- list()
+list_preds_tmod_y1_miss2 <- list()
+list_preds_tmod_y1_miss_test <- list()
+list_preds_tmod_y2_miss <- list()
+list_preds_tmod_y2_miss2 <- list()
+list_preds_tmod_y2_miss_test <- list()
+list_preds_tmod_y3_miss <- list()
+list_preds_tmod_y3_miss2 <- list()
+list_preds_tmod_y3_miss_test <- list()
+list_rhat_true_model_miss <- list()
+
+
 ######################################################
 ######################################################
 ##Starting the loop
@@ -123,8 +138,8 @@ for(count in 1:num_datasets){
   ############################
   #We generate the dataset
   ###########################
-  n <- 250 # number of subjects
-  n_test <- 250
+  n <- 200 # number of subjects
+  n_test <- 200
   K <- 10 # number of measurements per subject
   t_max <- 10 # maximum follow-up time
   min_sep <- 0.5
@@ -367,9 +382,17 @@ for(count in 1:num_datasets){
   DF$probs_drop <- probs_vec
   DF$dropout <- rbinom(n*K, size = 1, prob = probs_vec)
   
+  DF_test$probs_dropout <- probs_vec
+  DF_test$dropout <- rbinom(n*K, size = 1, prob = probs_vec)
+  
   ###Putting NAs after dropout
   #DF_complete <- DF
   DF_miss <- DF %>%
+    group_by(id) %>%
+    group_modify(~ simulate_dropout(.x)) %>%
+    ungroup()
+  
+  DF_test_miss <- DF_test %>%
     group_by(id) %>%
     group_modify(~ simulate_dropout(.x)) %>%
     ungroup()
@@ -386,118 +409,51 @@ for(count in 1:num_datasets){
   #.  (or 3) more models
   ######################################
   
-  #checking time of computation (21mins)
-  true_model_2 <- stan_mvmer(
-    formula = list(
-      y1 ~ sex * time + (time | id),
-      y3 ~ sqrt(time) + (sqrt(time) | id),
-      y5 ~ treatment + time + (time | id)),
-    data = DF,
-    family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 8, seed = 12345, iter = 1000)
-  
-  rhat_true_model_2 <- rhat(true_model_2)
-  
-  #checking time of computation using data frame with missings (21mins)
-  # fairly good convergence, max rhat is 1.67 when n=300, k=10
-  true_model_miss <- stan_mvmer(
+  #checking time of computation using data frame with missings 
+  # when n=300, k=10, we have 21mins, max rhat 1.67
+  #      n=250, k=10: 17mins, max rhat 1.51
+  #      n=200, k=10:  8.6 mins, max rhat 1.09
+  try(true_model_miss <- stan_mvmer(
     formula = list(
       y1 ~ sex * time + (time | id),
       y3 ~ sqrt(time) + (sqrt(time) | id),
       y5 ~ treatment + time + (time | id)),
     data = DF_miss,
     family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 8, seed = 12345, iter = 1000)
+    chains = 3, cores = 8, seed = 12345, iter = 1000))
   
-  rhat_true_model_miss <- rhat(true_model_miss)
+  try(rhat_true_model_miss <- rhat(true_model_miss))
   
-  # fitting the true model
-  true_model <- stan_mvmer(
-    formula = list(
-      y1 ~ sex * time + (time | id),
-      y3 ~ sqrt(time) + (sqrt(time) | id),
-      y5 ~ treatment + time + (time | id)),
-    data = DF,
-    family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 8, seed = 12345, iter = 1000)
-  
-  #Save convergence stuff
-  #vector with rhats
-  rhat_true_model <- rhat(true_model)
-  
-  #we should check how many params have rhat<1.1
-  
+  #OJO!!! para que devuelva las predictions a pesar de estar pasandole NAs 
+  #hay que pasarle el data frame sin los NAs
   
   #PREDICTIONS (for three outcomes separately)
-  preds_tmod <- posterior_predict(true_model, m=1)
-  preds_tmod_y2 <- posterior_predict(true_model, m=2)
-  preds_tmod_y3 <- posterior_predict(true_model, m=3)
+  try(preds_tmod_y1_miss <- posterior_predict(true_model_miss, m=1))
+  try(preds_tmod_y2_miss <- posterior_predict(true_model_miss, m=2))
+  try(preds_tmod_y3_miss <- posterior_predict(true_model_miss, m=3))
   
-  ## we have to use posterior_predict() function to do the predictions, also
-  # we have to use m=l to indicate the longitudinal outcome we want to predict
-  ## with this we have 1500 (in this case) samples of the 4500 longitudinal values
-  ## for each longitudinal outcome. We can get the mean, and then work 
-  ## with the point estimate of the prediction. Without mean we have the predictive
-  ## posterior distribution of the values.
+  #PREDICTIONS (for three outcomes separately)
+  # also predictiing for the missings
+  DF_miss2 <- DF_miss %>% dplyr::select(id, time, visit, sex, treatment)
   
-  #posteriorss <- as.matrix(true_model)
+  try(preds_tmod_y1_miss2 <- posterior_predict(true_model_miss, m=1,
+                                          newdata = DF_miss2))
+  try(preds_tmod_y2_miss2 <- posterior_predict(true_model_miss, m=2,
+                                          newdata = DF_miss2))
+  try(preds_tmod_y3_miss2 <- posterior_predict(true_model_miss, m=3,
+                                          newdata = DF_miss2))
   
-  #mcmc_trace(posteriorss[, "y1|(Intercept)"])
+  ## predictive posterior with TEST data set
+  DF_test_miss2 <- DF_test_miss %>% dplyr::select(id, time, visit, sex, treatment)
   
-  ## We must save metrics to check the convergence of the model (rhat and others
-  ## maybe even some chains)
+  try(preds_tmod_y1_miss_test <- posterior_predict(true_model_miss, m=1,
+                                               newdata = DF_test_miss2))
+  try(preds_tmod_y2_miss_test <- posterior_predict(true_model_miss, m=2,
+                                               newdata = DF_test_miss))
+  try(preds_tmod_y3_miss_test <- posterior_predict(true_model_miss, m=3,
+                                               newdata = DF_test_miss))
   
-  ## We do predictions with training (DF) and testing (DF_test) data
   
-  #using predict() function
-  
-  mMM1 <- stan_mvmer(
-    formula = list(
-      y1 ~ sex + time + (time | id),
-      y3 ~ treatment + time^2 + (time | id),
-      y5 ~ time + (time | id)),
-    data = DF,
-    family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 2, seed = 12345, iter = 1000)
-  
-  ## We must save metrics to check the convergence of the model (rhat and others
-  ## maybe even some chains)
-  
-  ## We do predictions with training (DF) and testing (DF_test) data
-  
-  #using predict() function
-  
-  mMM2 <- stan_mvmer(
-    formula = list(
-      y1 ~ time + (time | id),
-      y3 ~ treatment + (time | id),
-      y5 ~ sex + (time | id)),
-    data = DF,
-    family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 2, seed = 12345, iter = 1000)
-  
-  ## We must save metrics to check the convergence of the model (rhat and others
-  ## maybe even some chains)
-  
-  ## We do predictions with training (DF) and testing (DF_test) data
-  
-  #using predict() function
-  
-  mMM3 <- stan_mvmer(
-    formula = list(
-      y1 ~ treatment*time + (time | id),
-      y3 ~ sex + sqrt(time) + (time | id),
-      y5 ~ sex + time + (time | id)),
-    data = DF,
-    family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 2, seed = 12345, iter = 1000)
-  
-  ## We must save metrics to check the convergence of the model (rhat and others
-  ## maybe even some chains)
-  
-  ## We do predictions with training (DF) and testing (DF_test) data
-  
-  #using predict() function
   
   ######################################
   #Fitting MFPCA models
@@ -532,30 +488,30 @@ for(count in 1:num_datasets){
   #now we use MFPCA function from mfpca R package
   
   #We fit with NO weights and pve=0.99
-  mfpca1 <- MFPCA(m1, M = 4, 
+  try(mfpca1 <- MFPCA(m1, M = 3, 
                  uniExpansions = list(list(type="uFPCA", pve = 0.9),
                                       list(type ="uFPCA", pve=0.9),
                                       list(type="uFPCA", pve=0.9)),
-                 fit = TRUE)
+                 fit = TRUE))
   
   
   ###OBS: we have to adjust M and pve depending on % of missing data we have 
   
   # predict in training data:
-  pred_mfpca1 <- predict(mfpca1)
+  try(pred_mfpca1 <- predict(mfpca1))
   
   #plot(pred_mfpca1)
   
   # predict in testing data:
   # value "vector" returned by MFPCA seems to be the cms in paper (and ML code)
   # we compute scores for testing data and we use meanf and psi from training
-  mfpca1_test <- MFPCA(m1_test, M = 5, 
+  try(mfpca1_test <- MFPCA(m1_test, M = 3, 
                   uniExpansions = list(list(type="uFPCA", pve = 0.99),
                                        list(type ="uFPCA", pve=0.99),
                                        list(type="uFPCA", pve=0.99)),
-                  fit = TRUE)
+                  fit = TRUE))
   
-  pred_mfpca1_test <- predict(mfpca1, scores = mfpca1_test$scores)
+  try(pred_mfpca1_test <- predict(mfpca1, scores = mfpca1_test$scores))
   
   #plot(pred_mfpca1_test)
   
@@ -581,6 +537,90 @@ for(count in 1:num_datasets){
   
   
   
+  
+  #########################################################
+  #########################################################
+  ## saving data
+  #########################################################
+  #########################################################
+  try(list_pred_mfpca1 <- append(list_pred_mfpca1, pred_mfpca1))
+  try(list_pred_mfpca1_test <- append(list_pred_mfpca1_test, pred_mfpca1_test))
+  try(list_preds_tmod_y1_miss <- append(list_preds_tmod_y1_miss, preds_tmod_y1_miss))
+  try(list_preds_tmod_y1_miss2 <- append(list_preds_tmod_y1_miss2, preds_tmod_y1_miss2))
+  try(list_preds_tmod_y1_miss_test <- append(list_preds_tmod_y1_miss_test, preds_tmod_y1_miss_test))
+  try(list_preds_tmod_y2_miss <- append(list_preds_tmod_y2_miss, preds_tmod_y2_miss))
+  try(list_preds_tmod_y2_miss2 <- append(list_preds_tmod_y2_miss2, preds_tmod_y2_miss2))
+  try(list_preds_tmod_y2_miss_test <- append(list_preds_tmod_y2_miss_test, preds_tmod_y2_miss_test))
+  try(list_preds_tmod_y3_miss <- append(list_preds_tmod_y3_miss, preds_tmod_y3_miss))
+  try(list_preds_tmod_y3_miss2 <- append(list_preds_tmod_y3_miss2, preds_tmod_y3_miss2))
+  try(list_preds_tmod_y3_miss_test <- append(list_preds_tmod_y3_miss_test, preds_tmod_y3_miss_test))
+  try(list_rhat_true_model_miss <- append(list_rhat_true_model_miss, rhat_true_model_miss))
+  
+  setwd("D:/La meva unitat/TFM/ResultsMMvsMFPCA")
+  try(if(count==1){
+    strr <- "results_1_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=strr)
+  })
+  try(if(count==2){
+    strr2 <- "results_2_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=strr2)
+  })
+  try(if(count==5){
+    str1 <- "results_5_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str1)
+  })
+  try(if(count==10){
+    str10 <- "results_10_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str10)
+  })
+  try(if(count==20){
+    str20 <- "results_20_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str20)
+  })
+  try(if(count==30){
+    str30 <- "results_30_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str30)
+  })
+  try(if(count==40){
+    str40 <- "results_40_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str40)
+  })
+  try(if(count==50){
+    str50 <- "results_50_MCAR_23jan2025.RData"
+    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str50)
+  })
   
   
   ######################################
@@ -756,3 +796,101 @@ probs_vec[1:15]
 simusimu <- rbinom(n*K, size = 1, prob = probs_vec)
 
 DF$dropout <- simusimu
+
+
+
+########################################################################
+#####################################################################
+## stuff out of the loop
+########################################################################
+#####################################################################
+
+
+
+# fitting the true model
+true_model <- stan_mvmer(
+  formula = list(
+    y1 ~ sex * time + (time | id),
+    y3 ~ sqrt(time) + (sqrt(time) | id),
+    y5 ~ treatment + time + (time | id)),
+  data = DF,
+  family = list(gaussian, gaussian, gaussian),
+  chains = 3, cores = 8, seed = 12345, iter = 1000)
+
+#Save convergence stuff
+#vector with rhats
+rhat_true_model <- rhat(true_model)
+
+#we should check how all params have rhat<1.1
+
+
+#PREDICTIONS (for three outcomes separately)
+preds_tmod <- posterior_predict(true_model, m=1)
+preds_tmod_y2 <- posterior_predict(true_model, m=2)
+preds_tmod_y3 <- posterior_predict(true_model, m=3)
+
+## we have to use posterior_predict() function to do the predictions, also
+# we have to use m=l to indicate the longitudinal outcome we want to predict
+## with this we have 1500 (in this case) samples of the 4500 longitudinal values
+## for each longitudinal outcome. We can get the mean, and then work 
+## with the point estimate of the prediction. Without mean we have the predictive
+## posterior distribution of the values.
+
+#posteriorss <- as.matrix(true_model)
+
+#mcmc_trace(posteriorss[, "y1|(Intercept)"])
+
+## We must save metrics to check the convergence of the model (rhat and others
+## maybe even some chains)
+
+## We do predictions with training (DF) and testing (DF_test) data
+
+#using predict() function
+
+mMM1 <- stan_mvmer(
+  formula = list(
+    y1 ~ sex + time + (time | id),
+    y3 ~ treatment + time^2 + (time | id),
+    y5 ~ time + (time | id)),
+  data = DF,
+  family = list(gaussian, gaussian, gaussian),
+  chains = 3, cores = 2, seed = 12345, iter = 1000)
+
+## We must save metrics to check the convergence of the model (rhat and others
+## maybe even some chains)
+
+## We do predictions with training (DF) and testing (DF_test) data
+
+#using predict() function
+
+mMM2 <- stan_mvmer(
+  formula = list(
+    y1 ~ time + (time | id),
+    y3 ~ treatment + (time | id),
+    y5 ~ sex + (time | id)),
+  data = DF,
+  family = list(gaussian, gaussian, gaussian),
+  chains = 3, cores = 2, seed = 12345, iter = 1000)
+
+## We must save metrics to check the convergence of the model (rhat and others
+## maybe even some chains)
+
+## We do predictions with training (DF) and testing (DF_test) data
+
+#using predict() function
+
+mMM3 <- stan_mvmer(
+  formula = list(
+    y1 ~ treatment*time + (time | id),
+    y3 ~ sex + sqrt(time) + (time | id),
+    y5 ~ sex + time + (time | id)),
+  data = DF,
+  family = list(gaussian, gaussian, gaussian),
+  chains = 3, cores = 2, seed = 12345, iter = 1000)
+
+## We must save metrics to check the convergence of the model (rhat and others
+## maybe even some chains)
+
+## We do predictions with training (DF) and testing (DF_test) data
+
+#using predict() function
