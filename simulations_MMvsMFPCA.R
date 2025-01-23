@@ -28,22 +28,19 @@ library(rstanarm)
 library(MASS)
 library(bayesplot)
 num_datasets <- 100
-n <- 300 # number of subjects
-n_test <- 300
-K <- 15
+n <- 250 # number of subjects
+n_test <- 250
+K <- 10
 #####D matrix for the random effects:
 set.seed(12345)
-sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
-                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+#we prepare 6x6 matrix for cov-var matrix of random-effects
+sigmaa <- matrix(c(runif(1,0,1.5), runif(6, -0.005, 0.005), 
+                   runif(1,0,1.5), runif(6, -0.005, 0.005),
+                   runif(1,0,1.5), runif(6, -0.005, 0.005),
+                   runif(1,0,1.5), runif(6, -0.005, 0.005),
+                   runif(1,0,1.5), runif(6, -0.005, 0.005),
                    runif(1,0,1.5))
-                 ,nrow = 10)
+                 ,nrow = 6)
 treat <- rep(as.factor(sample(c("A", "B"), size = n, replace = TRUE))
              ,each = K)
 
@@ -126,9 +123,9 @@ for(count in 1:num_datasets){
   ############################
   #We generate the dataset
   ###########################
-  n <- 300 # number of subjects
-  n_test <- 300
-  K <- 15 # number of measurements per subject
+  n <- 250 # number of subjects
+  n_test <- 250
+  K <- 10 # number of measurements per subject
   t_max <- 10 # maximum follow-up time
   min_sep <- 0.5
   
@@ -153,8 +150,8 @@ for(count in 1:num_datasets){
   X1 <- model.matrix(~ sex * time, data = DF)
   Z1 <- model.matrix(~ time, data = DF)
   
-  X2 <- model.matrix(~ treatment * time, data = DF )
-  Z2 <- model.matrix(~ time, data = DF)
+  #X2 <- model.matrix(~ treatment * time, data = DF )
+  #Z2 <- model.matrix(~ time, data = DF)
   
   #X3 <- model.matrix(~ time, data = DF )
   #Z3 <- model.matrix(~ time, data = DF)
@@ -165,8 +162,8 @@ for(count in 1:num_datasets){
   #X4 <- model.matrix(~ sex + time, data = DF)
   #Z4 <- model.matrix(~ time, data = DF)
   
-  X4 <- model.matrix(~ sex + time , data = DF)
-  Z4 <- model.matrix(~ time, data = DF)
+  #X4 <- model.matrix(~ sex + time , data = DF)
+  #Z4 <- model.matrix(~ time, data = DF)
   
   #X5 <- model.matrix(~ time, data = DF)
   #Z5 <- model.matrix(~ time, data = DF)
@@ -178,8 +175,8 @@ for(count in 1:num_datasets){
   X1_test <- model.matrix(~ sex * time, data = DF_test)
   Z1_test <- model.matrix(~ time, data = DF_test)
   
-  X2_test <- model.matrix(~ treatment * time, data = DF_test )
-  Z2_test <- model.matrix(~ time, data = DF_test)
+  #X2_test <- model.matrix(~ treatment * time, data = DF_test )
+  #Z2_test <- model.matrix(~ time, data = DF_test)
   
   #X3_test <- model.matrix(~ time, data = DF_test )
   #Z3_test <- model.matrix(~ time, data = DF_test)
@@ -190,8 +187,8 @@ for(count in 1:num_datasets){
   #X4_test <- model.matrix(~ sex + time, data = DF_test)
   #Z4_test <- model.matrix(~ time, data = DF_test)
   
-  X4_test <- model.matrix(~ sex + time, data = DF_test)
-  Z4_test <- model.matrix(~ time, data = DF_test)
+  #X4_test <- model.matrix(~ sex + time, data = DF_test)
+  #Z4_test <- model.matrix(~ time, data = DF_test)
   
   #X5_test <- model.matrix(~ time, data = DF_test)
   #Z5_test <- model.matrix(~ time, data = DF_test)
@@ -201,13 +198,13 @@ for(count in 1:num_datasets){
   
   #Simulate random effects
   #################################################
-  b <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
-  b_test <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
+  b <-  mvrnorm(n = n, mu = rep(0,6), Sigma = sigmaa%*%t(sigmaa))
+  b_test <-  mvrnorm(n = n, mu = rep(0,6), Sigma = sigmaa%*%t(sigmaa))
   
   
   #Simulate first longitudinal outcome
   ###############################################
-  betas1 <- c(-2.2, -0.25, 1.24, -0.05) # fixed effects coefficients
+  betas1 <- c(2.2, 1.6787, 1.24, -0.05) # fixed effects coefficients
   sigma1 <- 0.125 # errors sd
   
   # random effects
@@ -233,27 +230,27 @@ for(count in 1:num_datasets){
   
   #Simulate second longitudinal outcome
   ###############################################
-  betas2 <- c(-1.8, -0.06, 0.5, 0.06) # fixed effects coefficients
-  betas2 <- c(10, -0.02, 2.222, 0.07) # fixed effects coefficients
-  sigma2 <- 0.25 # errors sd
+  #betas2 <- c(-1.8, -0.06, 0.5, 0.06) # fixed effects coefficients
+  #betas2 <- c(10, -0.02, 2.222, 0.07) # fixed effects coefficients
+  #sigma2 <- 0.25 # errors sd
   
   # we simulate random effects
-  b2 <- b[, c(3,4)]
+  #b2 <- b[, c(3,4)]
   # linear predictor
-  eta_y2 <- as.vector(X2 %*% betas2 + rowSums(Z2 * b2[DF$id, ]))
+  #eta_y2 <- as.vector(X2 %*% betas2 + rowSums(Z2 * b2[DF$id, ]))
   # we simulate normal longitudinal data
-  DF$y2 <- rnorm(n * K, mean = eta_y2, sd = sigma2)
+  #DF$y2 <- rnorm(n * K, mean = eta_y2, sd = sigma2)
   # we assume that values below 0 are not observed, and set equal to 0
   #DF$ind2 <- as.numeric(DF$y2 < -4)
   #DF$y2 <- pmax(DF$y2, -4)
   
   ####Test data
   # we simulate random effects
-  b2_test <- b_test[, c(3,4)]
+  #b2_test <- b_test[, c(3,4)]
   # linear predictor
-  eta_y2_test <- as.vector(X2_test %*% betas2 + rowSums(Z2_test * b2[DF_test$id, ]))
+  #eta_y2_test <- as.vector(X2_test %*% betas2 + rowSums(Z2_test * b2[DF_test$id, ]))
   # we simulate normal longitudinal data
-  DF_test$y2 <- rnorm(n_test * K, mean = eta_y2_test, sd = sigma2)
+  #DF_test$y2 <- rnorm(n_test * K, mean = eta_y2_test, sd = sigma2)
   # we assume that values below 0 are not observed, and set equal to 0
   #DF_test$ind2 <- as.numeric(DF_test$y2 < -4)
   #DF_test$y2 <- pmax(DF_test$y2, -4)
@@ -266,7 +263,7 @@ for(count in 1:num_datasets){
   
   
   # we simulate random effects
-  b3 <- b[, c(5,6)]
+  b3 <- b[, c(3,4)]
   # linear predictor
   eta_y3 <- as.vector(X3 %*% betas3 + 
                         rowSums(Z3 * b3[DF$id, ]))
@@ -277,7 +274,7 @@ for(count in 1:num_datasets){
   
   ########Test data
   # we simulate random effects
-  b3_test <- b_test[, c(5,6)]
+  b3_test <- b_test[, c(3,4)]
   # linear predictor
   eta_y3_test <- as.vector(X3_test %*% betas3 + rowSums(Z3_test * b3_test[DF_test$id, ]))
   # we simulate normal longitudinal data
@@ -285,29 +282,29 @@ for(count in 1:num_datasets){
   
   #Simulate forth longitudinal outcome
   ###############################################
-  betas4 <- c(0.01, 0.5, -0.31416) # fixed effects coefficients
-  betas4 <- c(80, -4.25, -3.789) # fixed effects coefficients
+  #betas4 <- c(0.01, 0.5, -0.31416) # fixed effects coefficients
+  #betas4 <- c(80, -4.25, -3.789) # fixed effects coefficients
   
   # we simulate random effects
-  b4 <- b[, c(7,8)]
+  #b4 <- b[, c(7,8)]
   # linear predictor
-  eta_y4 <- as.vector(X4 %*% betas4 + rowSums(Z4 * b4[DF$id, ]))
+  #eta_y4 <- as.vector(X4 %*% betas4 + rowSums(Z4 * b4[DF$id, ]))
   # mean of the binomial distribution
   #mu_y4 <- plogis(eta_y4)
   # we simulate binomial longitudinal data
   #DF$y4 <- rbinom(n * K, size = 1, prob = mu_y4)
-  DF$y4 <- rnorm(n_test * K, mean = eta_y4, sd = sigma3)
+  #DF$y4 <- rnorm(n_test * K, mean = eta_y4, sd = sigma3)
   
   #####Test data
   # we simulate random effects
-  b4_test <- b_test[, c(7,8)]
+  #b4_test <- b_test[, c(7,8)]
   # linear predictor
-  eta_y4_test <- as.vector(X4_test %*% betas4 + rowSums(Z4_test * b4_test[DF_test$id, ]))
+  #eta_y4_test <- as.vector(X4_test %*% betas4 + rowSums(Z4_test * b4_test[DF_test$id, ]))
   # mean of the binomial distribution
   #mu_y4_test <- plogis(eta_y4_test)
   # we simulate binomial longitudinal data
   #DF_test$y4 <- rbinom(n_test * K, size = 1, prob = mu_y4_test)
-  DF_test$y4 <- rnorm(n_test * K, mean = eta_y4_test, sd = sigma3)
+  #DF_test$y4 <- rnorm(n_test * K, mean = eta_y4_test, sd = sigma3)
   
   #Simulate fifth longitudinal outcome
   ###############################################
@@ -315,7 +312,7 @@ for(count in 1:num_datasets){
   betas5 <- c(70, -5.44, -3.761289) # fixed effects coefficients
   
   # we simulate random effects
-  b5 <- b[, c(9,10)]
+  b5 <- b[, c(5,6)]
   # linear predictor
   eta_y5 <- as.vector(X5 %*% betas5 + rowSums(Z5 * b5[DF$id, ]))
   # mean of the binomial distribution
@@ -326,7 +323,7 @@ for(count in 1:num_datasets){
   
   ####Test data
   # we simulate random effects
-  b5_test <- b_test[, c(9,10)]
+  b5_test <- b_test[, c(5,6)]
   # linear predictor
   eta_y5_test <- as.vector(X5_test %*% betas5 + rowSums(Z5_test * b5_test[DF_test$id, ]))
   # mean of the binomial distribution
@@ -389,6 +386,31 @@ for(count in 1:num_datasets){
   #.  (or 3) more models
   ######################################
   
+  #checking time of computation (21mins)
+  true_model_2 <- stan_mvmer(
+    formula = list(
+      y1 ~ sex * time + (time | id),
+      y3 ~ sqrt(time) + (sqrt(time) | id),
+      y5 ~ treatment + time + (time | id)),
+    data = DF,
+    family = list(gaussian, gaussian, gaussian),
+    chains = 3, cores = 8, seed = 12345, iter = 1000)
+  
+  rhat_true_model_2 <- rhat(true_model_2)
+  
+  #checking time of computation using data frame with missings (21mins)
+  # fairly good convergence, max rhat is 1.67 when n=300, k=10
+  true_model_miss <- stan_mvmer(
+    formula = list(
+      y1 ~ sex * time + (time | id),
+      y3 ~ sqrt(time) + (sqrt(time) | id),
+      y5 ~ treatment + time + (time | id)),
+    data = DF_miss,
+    family = list(gaussian, gaussian, gaussian),
+    chains = 3, cores = 8, seed = 12345, iter = 1000)
+  
+  rhat_true_model_miss <- rhat(true_model_miss)
+  
   # fitting the true model
   true_model <- stan_mvmer(
     formula = list(
@@ -397,8 +419,16 @@ for(count in 1:num_datasets){
       y5 ~ treatment + time + (time | id)),
     data = DF,
     family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 2, seed = 12345, iter = 1000)
+    chains = 3, cores = 8, seed = 12345, iter = 1000)
   
+  #Save convergence stuff
+  #vector with rhats
+  rhat_true_model <- rhat(true_model)
+  
+  #we should check how many params have rhat<1.1
+  
+  
+  #PREDICTIONS (for three outcomes separately)
   preds_tmod <- posterior_predict(true_model, m=1)
   preds_tmod_y2 <- posterior_predict(true_model, m=2)
   preds_tmod_y3 <- posterior_predict(true_model, m=3)
@@ -544,10 +574,10 @@ for(count in 1:num_datasets){
   
   
   
-  ##NOW TENEMOS QUE AVERIGUAR COMO HACER PREDICCIONES, USAMOS LAS COMPOPNENTWS
-  ## Y LO CALCULAMOS A MANIKI, MIRAR FUNCIONES QUE USAMOS EN ML STUFF
-  
-  #First we use the PACE function as in our previous simulations of MfPCA
+  #####################################################
+  ## Comparing predictions by means of standardized
+  ## RMSE
+  #####################################################
   
   
   
