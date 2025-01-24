@@ -27,7 +27,7 @@ library(MFPCA)
 library(rstanarm)
 library(MASS)
 library(bayesplot)
-num_datasets <- 50
+num_datasets <- 100
 n <- 200 # number of subjects
 n_test <- 200
 K <- 10
@@ -116,6 +116,16 @@ counting_missing_data <- function(data, n, K){
 
 list_pred_mfpca1 <- list()
 list_pred_mfpca1_test <- list()  
+
+list_pred_mfpca1_y1 <- list()
+list_pred_mfpca1_y2 <- list()
+list_pred_mfpca1_y3 <- list()
+list_pred_mfpca1_y1_test <- list()
+list_pred_mfpca1_y2_test <- list()
+list_pred_mfpca1_y3_test <- list()
+
+
+
 list_preds_tmod_y1_miss <- list()
 list_preds_tmod_y1_miss2 <- list()
 list_preds_tmod_y1_miss_test <- list()
@@ -420,7 +430,7 @@ for(count in 1:num_datasets){
       y5 ~ treatment + time + (time | id)),
     data = DF_miss,
     family = list(gaussian, gaussian, gaussian),
-    chains = 3, cores = 8, seed = 12345, iter = 1000))
+    chains = 3, cores = 8, seed = 12345, iter = 1500))
   
   try(rhat_true_model_miss <- rhat(true_model_miss))
   
@@ -500,6 +510,10 @@ for(count in 1:num_datasets){
   # predict in training data:
   try(pred_mfpca1 <- predict(mfpca1))
   
+  try(pred_mfpca1_y1 <- pred_mfpca1[[1]]@X)
+  try(pred_mfpca1_y2 <- pred_mfpca1[[2]]@X)
+  try(pred_mfpca1_y3 <- pred_mfpca1[[3]]@X)
+  
   #plot(pred_mfpca1)
   
   # predict in testing data:
@@ -512,6 +526,10 @@ for(count in 1:num_datasets){
                   fit = TRUE))
   
   try(pred_mfpca1_test <- predict(mfpca1, scores = mfpca1_test$scores))
+  
+  try(pred_mfpca1_y1_test <- pred_mfpca1_test[[1]]@X)
+  try(pred_mfpca1_y2_test <- pred_mfpca1_test[[2]]@X)
+  try(pred_mfpca1_y3_test <- pred_mfpca1_test[[3]]@X)
   
   #plot(pred_mfpca1_test)
   
@@ -543,84 +561,123 @@ for(count in 1:num_datasets){
   ## saving data
   #########################################################
   #########################################################
-  try(list_pred_mfpca1 <- append(list_pred_mfpca1, pred_mfpca1))
-  try(list_pred_mfpca1_test <- append(list_pred_mfpca1_test, pred_mfpca1_test))
-  try(list_preds_tmod_y1_miss <- append(list_preds_tmod_y1_miss, preds_tmod_y1_miss))
-  try(list_preds_tmod_y1_miss2 <- append(list_preds_tmod_y1_miss2, preds_tmod_y1_miss2))
-  try(list_preds_tmod_y1_miss_test <- append(list_preds_tmod_y1_miss_test, preds_tmod_y1_miss_test))
-  try(list_preds_tmod_y2_miss <- append(list_preds_tmod_y2_miss, preds_tmod_y2_miss))
-  try(list_preds_tmod_y2_miss2 <- append(list_preds_tmod_y2_miss2, preds_tmod_y2_miss2))
-  try(list_preds_tmod_y2_miss_test <- append(list_preds_tmod_y2_miss_test, preds_tmod_y2_miss_test))
-  try(list_preds_tmod_y3_miss <- append(list_preds_tmod_y3_miss, preds_tmod_y3_miss))
-  try(list_preds_tmod_y3_miss2 <- append(list_preds_tmod_y3_miss2, preds_tmod_y3_miss2))
-  try(list_preds_tmod_y3_miss_test <- append(list_preds_tmod_y3_miss_test, preds_tmod_y3_miss_test))
-  try(list_rhat_true_model_miss <- append(list_rhat_true_model_miss, rhat_true_model_miss))
+  try(list_pred_mfpca1 <- append(list_pred_mfpca1, list(pred_mfpca1)))
+  try(list_pred_mfpca1_test <- append(list_pred_mfpca1_test, list(pred_mfpca1_test)))
+  
+  try(list_pred_mfpca1_y1 <- append(list_pred_mfpca1_y1, list(pred_mfpca1_y1)))
+  try(list_pred_mfpca1_y2 <- append(list_pred_mfpca1_y2, list(pred_mfpca1_y2)))
+  try(list_pred_mfpca1_y3 <- append(list_pred_mfpca1_y3, list(pred_mfpca1_y3)))
+  
+  try(list_pred_mfpca1_y1_test <- append(list_pred_mfpca1_y1_test, 
+                                         list(pred_mfpca1_y1_test)))
+  try(list_pred_mfpca1_y2_test <- append(list_pred_mfpca1_y2_test, 
+                                         list(pred_mfpca1_y2_test)))
+  try(list_pred_mfpca1_y3_test <- append(list_pred_mfpca1_y3_test, 
+                                         list(pred_mfpca1_y3_test)))
+  
+  try(list_preds_tmod_y1_miss <- append(list_preds_tmod_y1_miss, list(preds_tmod_y1_miss)))
+  try(list_preds_tmod_y1_miss2 <- append(list_preds_tmod_y1_miss2, list(preds_tmod_y1_miss2)))
+  try(list_preds_tmod_y1_miss_test <- append(list_preds_tmod_y1_miss_test, list(preds_tmod_y1_miss_test)))
+  try(list_preds_tmod_y2_miss <- append(list_preds_tmod_y2_miss, list(preds_tmod_y2_miss)))
+  try(list_preds_tmod_y2_miss2 <- append(list_preds_tmod_y2_miss2, list(preds_tmod_y2_miss2)))
+  try(list_preds_tmod_y2_miss_test <- append(list_preds_tmod_y2_miss_test, list(preds_tmod_y2_miss_test)))
+  try(list_preds_tmod_y3_miss <- append(list_preds_tmod_y3_miss, list(preds_tmod_y3_miss)))
+  try(list_preds_tmod_y3_miss2 <- append(list_preds_tmod_y3_miss2, list(preds_tmod_y3_miss2)))
+  try(list_preds_tmod_y3_miss_test <- append(list_preds_tmod_y3_miss_test, list(preds_tmod_y3_miss_test)))
+  try(list_rhat_true_model_miss <- append(list_rhat_true_model_miss, list(rhat_true_model_miss)))
   
   setwd("D:/La meva unitat/TFM/ResultsMMvsMFPCA")
   try(if(count==1){
-    strr <- "results_1_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    strr <- "results_1_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=strr)
   })
   try(if(count==2){
-    strr2 <- "results_2_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    strr2 <- "results_2_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=strr2)
   })
   try(if(count==5){
-    str1 <- "results_5_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    str1 <- "results_5_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=str1)
   })
   try(if(count==10){
-    str10 <- "results_10_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    str10 <- "results_10_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=str10)
   })
   try(if(count==20){
-    str20 <- "results_20_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    str20 <- "results_20_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=str20)
   })
   try(if(count==30){
-    str30 <- "results_30_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    str30 <- "results_30_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=str30)
   })
   try(if(count==40){
-    str40 <- "results_40_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    str40 <- "results_40_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=str40)
   })
   try(if(count==50){
-    str50 <- "results_50_MCAR_23jan2025.RData"
-    save(list_pred_mfpca1, list_pred_mfpca1_test,  
+    str50 <- "results_50_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
          list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
          list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
          list_rhat_true_model_miss, file=str50)
   })
+  try(if(count==75){
+    str75 <- "results_75_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str75)
+  })
+  try(if(count==100){
+    str100 <- "results_100_MCAR_24jan2025.RData"
+    save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
+         list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
+         list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
+         list_preds_tmod_y2_miss, list_preds_tmod_y2_miss2, list_preds_tmod_y2_miss_test,
+         list_preds_tmod_y3_miss, list_preds_tmod_y3_miss2, list_preds_tmod_y3_miss_test,
+         list_rhat_true_model_miss, file=str100)
+  })
+  
   
   
   ######################################
@@ -894,3 +951,5 @@ mMM3 <- stan_mvmer(
 ## We do predictions with training (DF) and testing (DF_test) data
 
 #using predict() function
+
+load("D:/La meva unitat/TFM/ResultsMMvsMFPCA/results_2_MCAR_23jan2025.RData")
