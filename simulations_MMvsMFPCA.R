@@ -442,6 +442,13 @@ for(count in 1:num_datasets){
   try(preds_tmod_y2_miss <- posterior_predict(true_model_miss, m=2))
   try(preds_tmod_y3_miss <- posterior_predict(true_model_miss, m=3))
   
+  #since those matrices take up a lot of memory, we summary the draws computing
+  #the mean by columns and we and up with a vector of 2000 elements
+  try(preds_tmod_y1_miss <- colMeans(preds_tmod_y1_miss))
+  try(preds_tmod_y2_miss <- colMeans(preds_tmod_y2_miss))
+  try(preds_tmod_y3_miss <- colMeans(preds_tmod_y3_miss))
+  
+  
   #PREDICTIONS (for three outcomes separately)
   # also predictiing for the missings
   DF_miss2 <- DF_miss %>% dplyr::select(id, time, visit, sex, treatment)
@@ -453,15 +460,44 @@ for(count in 1:num_datasets){
   try(preds_tmod_y3_miss2 <- posterior_predict(true_model_miss, m=3,
                                           newdata = DF_miss2))
   
+  #since those matrices take up a lot of memory, we summary the draws computing
+  #the mean by columns and we and up with a vector of 2000 elements
+  try(preds_tmod_y1_miss2 <- colMeans(preds_tmod_y1_miss2))
+  try(preds_tmod_y2_miss2 <- colMeans(preds_tmod_y2_miss2))
+  try(preds_tmod_y3_miss2 <- colMeans(preds_tmod_y3_miss2))
+  
+  #transforming to a matrix 200*10
+  try(preds_tmod_y1_miss2 <- matrix(preds_tmod_y1_miss2, nrow = 200, ncol = 10, 
+                                    byrow = TRUE))
+  try(preds_tmod_y2_miss2 <- matrix(preds_tmod_y2_miss2, nrow = 200, ncol = 10, 
+                                    byrow = TRUE))
+  try(preds_tmod_y3_miss2 <- matrix(preds_tmod_y3_miss2, nrow = 200, ncol = 10, 
+                                    byrow = TRUE))
+  
   ## predictive posterior with TEST data set
   DF_test_miss2 <- DF_test_miss %>% dplyr::select(id, time, visit, sex, treatment)
   
   try(preds_tmod_y1_miss_test <- posterior_predict(true_model_miss, m=1,
                                                newdata = DF_test_miss2))
   try(preds_tmod_y2_miss_test <- posterior_predict(true_model_miss, m=2,
-                                               newdata = DF_test_miss))
+                                               newdata = DF_test_miss2))
   try(preds_tmod_y3_miss_test <- posterior_predict(true_model_miss, m=3,
-                                               newdata = DF_test_miss))
+                                               newdata = DF_test_miss2))
+  
+  #since those matrices take up a lot of memory, we summary the draws computing
+  #the mean by columns and we and up with a vector of 2000 elements
+  try(preds_tmod_y1_miss_test <- colMeans(preds_tmod_y1_miss_test))
+  try(preds_tmod_y2_miss_test <- colMeans(preds_tmod_y2_miss_test))
+  try(preds_tmod_y3_miss_test <- colMeans(preds_tmod_y3_miss_test))
+  
+  #transforming to a matrix 200*10
+  try(preds_tmod_y1_miss_test <- matrix(preds_tmod_y1_miss_test, nrow = 200, ncol = 10, 
+                                        byrow = TRUE))
+  try(preds_tmod_y2_miss_test <- matrix(preds_tmod_y2_miss_test, nrow = 200, ncol = 10, 
+                                        byrow = TRUE))
+  try(preds_tmod_y3_miss_test <- matrix(preds_tmod_y3_miss_test, nrow = 200, ncol = 10, 
+                                        byrow = TRUE))
+  
   
   
   
