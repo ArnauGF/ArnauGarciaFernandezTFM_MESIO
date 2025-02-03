@@ -1559,7 +1559,7 @@ for(count in 1:num_datasets){
   
   setwd("D:/La meva unitat/TFM/ResultsMMvsMFPCA")
   try(if(count==1){
-    strr <- "results_1_MCAR_28jan2025.RData"
+    strr <- "results_1_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1570,7 +1570,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=strr)
   })
   try(if(count==2){
-    strr2 <- "results_2_MCAR_28jan2025.RData"
+    strr2 <- "results_2_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1581,7 +1581,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=strr2)
   })
   try(if(count==5){
-    str1 <- "results_5_MCAR_28jan2025.RData"
+    str1 <- "results_5_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1592,7 +1592,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str1)
   })
   try(if(count==10){
-    str10 <- "results_10_MCAR_28jan2025.RData"
+    str10 <- "results_10_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1603,7 +1603,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str10)
   })
   try(if(count==20){
-    str20 <- "results_20_MCAR_28jan2025.RData"
+    str20 <- "results_20_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1614,7 +1614,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str20)
   })
   try(if(count==30){
-    str30 <- "results_30_MCAR_28jan2025.RData"
+    str30 <- "results_30_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1625,7 +1625,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str30)
   })
   try(if(count==40){
-    str40 <- "results_40_MCAR_28jan2025.RData"
+    str40 <- "results_40_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1636,7 +1636,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str40)
   })
   try(if(count==50){
-    str50 <- "results_50_MCAR_28jan2025.RData"
+    str50 <- "results_50_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1647,7 +1647,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str50)
   })
   try(if(count==75){
-    str75 <- "results_75_MCAR_28jan2025.RData"
+    str75 <- "results_75_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
@@ -1658,7 +1658,7 @@ for(count in 1:num_datasets){
          missing_ratio_train, missing_ratio_test, file=str75)
   })
   try(if(count==100){
-    str100 <- "results_100_MCAR_28jan2025.RData"
+    str100 <- "results_100_MCAR30_3feb2025.RData"
     save(list_pred_mfpca1_y1, list_pred_mfpca1_y2, list_pred_mfpca1_y3,
          list_pred_mfpca1_y1_test, list_pred_mfpca1_y2_test, list_pred_mfpca1_y3_test,
          list_preds_tmod_y1_miss, list_preds_tmod_y1_miss2, list_preds_tmod_y1_miss_test,
