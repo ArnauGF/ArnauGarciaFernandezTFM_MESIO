@@ -35,11 +35,10 @@ sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005),
                    runif(1,0,1.5))
                  ,nrow = 10)
 
-
 list_DF <- list()
 list_DF_test <- list()
-
-checkTimes <- checkTimes2 <- numeric(250)
+checkTimes <- numeric(num_dat)
+checkTimes2 <- numeric(num_dat)
 
 for(count in 1:num_dat){
   ############################
@@ -217,9 +216,11 @@ for(count in 1:num_dat){
   #Simulate event times
   ########################################
   alpha <- c(0.8, 0.61, 0.38, 0.222, 0.74) # association coefficients
+  #alpha <- (-0.00005)*alpha
+  alpha <- (-0.05)*alpha # association coefficients
   alpha <- (-0.0015)*alpha # association coefficients
-  #gammas <- c("(Intercept)" = -15, "sex" = -0.5)
-  gammas <- c("(Intercept)" = -20, "sex" = -0.05)
+  gammas <- c("(Intercept)" = -15, "sex" = -0.5)
+  gammas <- c("(Intercept)" = -20, "sex" = -0.5)
   W <- model.matrix(~ sex, data = DF[!duplicated(DF$id), ])
   # linear predictor for the survival model
   eta_t <- as.vector(W %*% gammas)
@@ -267,13 +268,12 @@ for(count in 1:num_dat){
   trueTimes <- numeric(n)
   for (i in seq_len(n)) {
     Up <- 100
-    Up <- 50
     Root <- try(uniroot(invS, interval = c(1e-05, Up), i = i)$root, TRUE)
     trueTimes[i] <- if (!inherits(Root, "try-error")) Root else 150
   }
 
   ##saving true times
-  checkTimes[count] <- sum(trueTimes==150)/n
+  #checkTimes[count] <- trueTimes
   
   #save Times in data frame
   Time <- trueTimes
@@ -328,31 +328,29 @@ for(count in 1:num_dat){
   trueTimes2 <- numeric(n)
   for (i in seq_len(n)) {
     Up <- 100
-    Up <- 50
     Root <- try(uniroot(invS, interval = c(1e-05, Up), i = i)$root, TRUE)
     trueTimes2[i] <- if (!inherits(Root, "try-error")) Root else 150
   }
   
   ##saving truetimes
-  checkTimes2[count] <- sum(trueTimes2==150)/n
+  #checkTimes2[count] <- trueTimes2
   
   #save Times in data frame
   Time <- trueTimes2
   DF_test$Time <- Time[DF_test$id]
-  
-  #we save data frames in a list
+
+  #Save data in lists
   try(list_DF <- append(list_DF, list(DF)))
   try(list_DF_test <- append(list_DF_test, list(DF_test)))
-
+  
   
   if(count==num_dat){
-    setwd("D:/La meva unitat/TFM/Results_simuls_1")
     save(checkTimes, checkTimes2, list_DF, list_DF_test,
          file="data_simul1.RData")
   }
+ 
   print(count) 
 }
-
 
 sum(trueTimes==150)/250
 sum(trueTimes2==150)/250
@@ -380,63 +378,4 @@ xyplot(y4 ~ time, groups = id,
 xyplot(y5 ~ time, groups = id,
        data = DF[1:825,],
        type = "l" ,xlab="Time",ylab="Y5")
-
-alpha <- c(0.8, 0.61, 0.38, 0.222, 0.74) # association coefficients
-alpha <- alpha/2 # association coefficients
-gammas <- c("(Intercept)" = -15, "sex" = -0.5)
-gammas <- c("(Intercept)" = -20, "sex" = -0.05)
-W <- model.matrix(~ sex, data = DF[!duplicated(DF$id), ])
-# linear predictor for the survival model
-eta_t <- as.vector(W %*% gammas)
-
-i
-sex_i <- W[i, 2L]
-h <- function (s) {
-  X1_at_s <- cbind(1, sex_i, s, sex_i * s)
-  Z1_at_s <- cbind(1, s)
-  X2_at_s <- cbind(1, sex_i, s)
-  Z2_at_s <- cbind(1, s)
-  X3_at_s <- cbind(1, s)
-  Z3_at_s <- cbind(1, s)
-  X4_at_s <- cbind(1, sex_i, s)
-  Z4_at_s <- cbind(1, s)
-  X5_at_s <- cbind(1, s)
-  Z5_at_s <- cbind(1, s)
-  # the linear predictor from the mixed model evaluated at time s
-  f1 <- as.vector(X1_at_s %*% betas1 +
-                    rowSums(Z1_at_s * b1[rep(i, nrow(Z1_at_s)), ]))
-  f2 <- as.vector(X2_at_s %*% betas2 +
-                    rowSums(Z2_at_s * b2[rep(i, nrow(Z2_at_s)), ]))
-  f3 <- as.vector(X3_at_s %*% betas3 +
-                    rowSums(Z3_at_s * b3[rep(i, nrow(Z3_at_s)), ]))
-  f4 <- as.vector(X4_at_s %*% betas4 +
-                    rowSums(Z4_at_s * b4[rep(i, nrow(Z4_at_s)), ]))
-  f5 <- as.vector(X5_at_s %*% betas5 +
-                    rowSums(Z5_at_s * b5[rep(i, nrow(Z5_at_s)), ]))
-  exp(log(shape_wb) + (shape_wb - 1) * log(s) + eta_t[i] 
-      + f1*alpha[1] + f2*alpha[2] + f3*alpha[3] + f4*alpha[4] + f5*alpha[5])
-}
-
-h(5)
-integrate(h, lower = 0, upper = 8)$value + log(runif(1))
-
-invS <- function (t, i) {
-  # i denotes the subject
-  sex_i <- W[i, 2L]
-  # h() is the hazard function and we assume a Weibull baseline hazard
-  
-  # -log(S(t)) = H(t), where H(t) is the cumulative hazard function
-  integrate(h, lower = 0, upper = t)$value + log(u[i])
-}
-
-# we simulate the event times
-u <- runif(n)
-trueTimes <- numeric(n)
-for (i in seq_len(n)) {
-  Up <- 100
-  Root <- try(uniroot(invS, interval = c(1e-05, Up), i = i)$root, TRUE)
-  trueTimes[i] <- if (!inherits(Root, "try-error")) Root else 150
-}
-
-
 
