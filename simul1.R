@@ -2766,3 +2766,586 @@ for(count in 1:num_dat){
   }
 }
 
+
+###########################################################################
+###########################################################################
+## Checking the proper convergence of the JM 
+## we try to save metrics such as Rhats to see what is going on with the 
+## JM we are fitting
+## WE TRY TO EXPLAIN why true model is not winning in our simulations
+###########################################################################
+###########################################################################
+library(JMbayes2)
+library(MASS)
+num_dat <- 20
+
+censoring_train <- censoring_test <- numeric(num_dat)
+checkTimes <- checkTimes2 <- matrix(nrow = num_dat, ncol = 300)
+disSL_epce <- disSL_ibs <- numeric(num_dat)
+count <- 0
+
+#####D matrix for the random effects:
+set.seed(12345)
+sigmaa <- matrix(c(runif(1,0,1.5), runif(10, -0.005, 0.005), 
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5), runif(10, -0.005, 0.005),
+                   runif(1,0,1.5))
+                 ,nrow = 10)
+
+### We start the loop for the simulation:
+
+list_rhats_MJM <- list()
+list_rhats_JM1 <- list()
+list_rhats_JM2 <- list()
+list_rhats_JM3 <- list()
+list_rhats_JM4 <- list()
+list_rhats_JM5 <- list()
+
+num_at_risk <- numeric(num_dat)
+num_ev <- numeric(num_dat)
+num_cens <- numeric(num_dat)
+
+
+for(count in 1:num_dat){
+  ############################
+  #We generate the dataset
+  ###########################
+  n <- 200 # number of subjects
+  n_test <- 200
+  K <- 15 # number of measurements per subject
+  t_max <- 20 # maximum follow-up time
+  
+  # we construct a data frame with the design:
+  # everyone has a baseline measurement, and then measurements at random 
+  # follow-up times up to t_max
+  DF <- data.frame(id = rep(seq_len(n), each = K),
+                   time = c(replicate(n, c(0, sort(runif(K - 1, 0, t_max))))),
+                   sex = rep(gl(2, n/2, labels = c("male", "female")), each = K))
+  DF_test <- data.frame(id = rep(seq_len(n_test), each = K),
+                        time = c(replicate(n_test, c(0, sort(runif(K - 1, 0, t_max))))),
+                        sex = rep(gl(2, n_test/2, labels = c("male", "female")), each = K))
+  
+  
+  # design matrices for the fixed and random effects for longitudinal submodels
+  X1 <- model.matrix(~ sex * time, data = DF)
+  Z1 <- model.matrix(~ time, data = DF)
+  
+  X2 <- model.matrix(~ sex + time, data = DF )
+  Z2 <- model.matrix(~ time, data = DF)
+  
+  X3 <- model.matrix(~ time, data = DF )
+  Z3 <- model.matrix(~ time, data = DF)
+  
+  X4 <- model.matrix(~ sex + time, data = DF)
+  Z4 <- model.matrix(~ time, data = DF)
+  
+  X5 <- model.matrix(~ time, data = DF)
+  Z5 <- model.matrix(~ time, data = DF)
+  
+  ####for test data set
+  X1_test <- model.matrix(~ sex * time, data = DF_test)
+  Z1_test <- model.matrix(~ time, data = DF_test)
+  
+  X2_test <- model.matrix(~ sex + time, data = DF_test )
+  Z2_test <- model.matrix(~ time, data = DF_test)
+  
+  X3_test <- model.matrix(~ time, data = DF_test )
+  Z3_test <- model.matrix(~ time, data = DF_test)
+  
+  X4_test <- model.matrix(~ sex + time, data = DF_test)
+  Z4_test <- model.matrix(~ time, data = DF_test)
+  
+  X5_test <- model.matrix(~ time, data = DF_test)
+  Z5_test <- model.matrix(~ time, data = DF_test)
+  
+  #Simulate random effects
+  #################################################
+  b <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
+  b_test <-  mvrnorm(n = n, mu = rep(0,10), Sigma = sigmaa%*%t(sigmaa))
+  
+  
+  #Simulate first longitudinal outcome
+  ###############################################
+  betas1 <- c(-2.2, -0.25, 1.24, -0.05) # fixed effects coefficients
+  sigma1 <- 0.125 # errors sd
+  
+  # random effects
+  b1 <-  b[, c(1,2)]
+  # linear predictor
+  eta_y1 <- as.vector(X1 %*% betas1 + rowSums(Z1 * b1[DF$id, ]))
+  # we simulate normal longitudinal data
+  DF$y1 <- rnorm(n * K, mean = eta_y1, sd = sigma1)
+  # we assume that values below 4 are not observed, and set equal to 0
+  DF$ind1 <- as.numeric(DF$y1 < -4)
+  DF$y1 <- pmax(DF$y1, -4)
+  
+  #Test data:
+  # we simulate random effects
+  b1_test <- b_test[, c(1,2)] 
+  # linear predictor
+  eta_y1_test <- as.vector(X1_test %*% betas1 + rowSums(Z1_test * b1_test[DF_test$id, ]))
+  # we simulate normal longitudinal data
+  DF_test$y1 <- rnorm(n_test * K, mean = eta_y1_test, sd = sigma1)
+  # we assume that values below 4 are not observed, and set equal to 0
+  DF_test$ind1 <- as.numeric(DF_test$y1 < -4)
+  DF_test$y1 <- pmax(DF_test$y1, -4)
+  
+  #Simulate second longitudinal outcome
+  ###############################################
+  betas2 <- c(-1.8, -0.06, 0.5) # fixed effects coefficients
+  sigma2 <- 0.25 # errors sd
+  
+  # we simulate random effects
+  b2 <- b[, c(3,4)]
+  # linear predictor
+  eta_y2 <- as.vector(X2 %*% betas2 + rowSums(Z2 * b2[DF$id, ]))
+  # we simulate normal longitudinal data
+  DF$y2 <- rnorm(n * K, mean = eta_y2, sd = sigma2)
+  # we assume that values below 0 are not observed, and set equal to 0
+  DF$ind2 <- as.numeric(DF$y2 < -4)
+  DF$y2 <- pmax(DF$y2, -4)
+  
+  ####Test data
+  # we simulate random effects
+  b2_test <- b_test[, c(3,4)]
+  # linear predictor
+  eta_y2_test <- as.vector(X2_test %*% betas2 + rowSums(Z2_test * b2[DF_test$id, ]))
+  # we simulate normal longitudinal data
+  DF_test$y2 <- rnorm(n_test * K, mean = eta_y2_test, sd = sigma2)
+  # we assume that values below 0 are not observed, and set equal to 0
+  DF_test$ind2 <- as.numeric(DF_test$y2 < -4)
+  DF_test$y2 <- pmax(DF_test$y2, -4)
+  
+  #Simulate third longitudinal outcome
+  ###############################################
+  betas3 <- c(-2.5, 0.0333) # fixed effects coefficients
+  sigma3 <- 0.25 # errors sd
+  
+  
+  # we simulate random effects
+  b3 <- b[, c(5,6)]
+  # linear predictor
+  eta_y3 <- as.vector(X3 %*% betas3 + rowSums(Z3 * b3[DF$id, ]))
+  # we simulate normal longitudinal data
+  DF$y3 <- rnorm(n * K, mean = eta_y3, sd = sigma3)
+  # we assume that values below 0 are not observed, and set equal to 0
+  
+  
+  ########Test data
+  # we simulate random effects
+  b3_test <- b_test[, c(5,6)]
+  # linear predictor
+  eta_y3_test <- as.vector(X3_test %*% betas3 + rowSums(Z3_test * b3_test[DF_test$id, ]))
+  # we simulate normal longitudinal data
+  DF_test$y3 <- rnorm(n_test * K, mean = eta_y3_test, sd = sigma3)
+  
+  #Simulate forth longitudinal outcome
+  ###############################################
+  betas4 <- c(0.01, 0.5, -0.31416) # fixed effects coefficients
+  
+  # we simulate random effects
+  b4 <- b[, c(7,8)]
+  # linear predictor
+  eta_y4 <- as.vector(X4 %*% betas4 + rowSums(Z4 * b4[DF$id, ]))
+  # mean of the binomial distribution
+  mu_y4 <- plogis(eta_y4)
+  # we simulate binomial longitudinal data
+  DF$y4 <- rbinom(n * K, size = 1, prob = mu_y4)
+  
+  #####Test data
+  # we simulate random effects
+  b4_test <- b_test[, c(7,8)]
+  # linear predictor
+  eta_y4_test <- as.vector(X4_test %*% betas4 + rowSums(Z4_test * b4_test[DF_test$id, ]))
+  # mean of the binomial distribution
+  mu_y4_test <- plogis(eta_y4_test)
+  # we simulate binomial longitudinal data
+  DF_test$y4 <- rbinom(n_test * K, size = 1, prob = mu_y4_test)
+  
+  
+  #Simulate fifth longitudinal outcome
+  ###############################################
+  betas5 <- c(1, 0.155) # fixed effects coefficients
+  
+  # we simulate random effects
+  b5 <- b[, c(9,10)]
+  # linear predictor
+  eta_y5 <- as.vector(X5 %*% betas5 + rowSums(Z5 * b5[DF$id, ]))
+  # mean of the binomial distribution
+  mu_y5 <- plogis(eta_y5)
+  # we simulate binomial longitudinal data
+  DF$y5 <- rbinom(n * K, size = 1, prob = mu_y5)
+  
+  ####Test data
+  # we simulate random effects
+  b5_test <- b_test[, c(9,10)]
+  # linear predictor
+  eta_y5_test <- as.vector(X5_test %*% betas5 + rowSums(Z5_test * b5_test[DF_test$id, ]))
+  # mean of the binomial distribution
+  mu_y5_test <- plogis(eta_y5_test)
+  # we simulate binomial longitudinal data
+  DF_test$y5 <- rbinom(n_test * K, size = 1, prob = mu_y5_test)
+  
+  #OBS: other glmm distr (beta, gamma, negative binom, etc) can be used
+  
+  
+  #Simulate event times
+  ########################################
+  upp_Cens <- 6 # fixed Type I censoring time
+  shape_wb <- 6.5 # shape Weibull
+  alpha <- c(0.8, 0.61, 0.38, 0.222, 0.74) # association coefficients
+  gammas <- c("(Intercept)" = -15, "sex" = -0.5)
+  W <- model.matrix(~ sex, data = DF[!duplicated(DF$id), ])
+  # linear predictor for the survival model
+  eta_t <- as.vector(W %*% gammas)
+  # to simulate event times we use inverse transform sampling
+  # (https://en.wikipedia.org/wiki/Inverse_transform_sampling). Namely, we want 
+  # to find t, such that S(t) = u, where S(.) is the survival function, and u a 
+  # number from the Unif(0, 1) distribution. The function below calculates 
+  # log(u) - log(S(t)), and for a given u, we want to find t for which it equals
+  # zero. We do that below using the uniroot() function
+  invS <- function (t, i) {
+    # i denotes the subject
+    sex_i <- W[i, 2L]
+    # h() is the hazard function and we assume a Weibull baseline hazard
+    h <- function (s) {
+      X1_at_s <- cbind(1, sex_i, s, sex_i * s)
+      Z1_at_s <- cbind(1, s)
+      X2_at_s <- cbind(1, sex_i, s)
+      Z2_at_s <- cbind(1, s)
+      X3_at_s <- cbind(1, s)
+      Z3_at_s <- cbind(1, s)
+      X4_at_s <- cbind(1, sex_i, s)
+      Z4_at_s <- cbind(1, s)
+      X5_at_s <- cbind(1, s)
+      Z5_at_s <- cbind(1, s)
+      # the linear predictor from the mixed model evaluated at time s
+      f1 <- as.vector(X1_at_s %*% betas1 +
+                        rowSums(Z1_at_s * b1[rep(i, nrow(Z1_at_s)), ]))
+      f2 <- as.vector(X2_at_s %*% betas2 +
+                        rowSums(Z2_at_s * b2[rep(i, nrow(Z2_at_s)), ]))
+      f3 <- as.vector(X3_at_s %*% betas3 +
+                        rowSums(Z3_at_s * b3[rep(i, nrow(Z3_at_s)), ]))
+      f4 <- as.vector(X4_at_s %*% betas4 +
+                        rowSums(Z4_at_s * b4[rep(i, nrow(Z4_at_s)), ]))
+      f5 <- as.vector(X5_at_s %*% betas5 +
+                        rowSums(Z5_at_s * b5[rep(i, nrow(Z5_at_s)), ]))
+      exp(log(shape_wb) + (shape_wb - 1) * log(s) + eta_t[i] 
+          + f1*alpha[1] + f2*alpha[2] + f3*alpha[3] + f4*alpha[4] + f5*alpha[5])
+    }
+    # -log(S(t)) = H(t), where H(t) is the cumulative hazard function
+    integrate(h, lower = 0, upper = t)$value + log(u[i])
+  }
+  
+  # we simulate the event times
+  u <- runif(n)
+  trueTimes <- numeric(n)
+  for (i in seq_len(n)) {
+    Up <- 100
+    Root <- try(uniroot(invS, interval = c(1e-05, Up), i = i)$root, TRUE)
+    trueTimes[i] <- if (!inherits(Root, "try-error")) Root else 150
+  }
+  # we use random censoring:
+  #Ctimes <- rnorm(n, mean = 6.5, sd = 1)
+  Ctimes <- upp_Cens
+  Time <- pmin(trueTimes, Ctimes)
+  event <- as.numeric(trueTimes <= Ctimes) # event indicator
+  
+  # we keep the longitudinal measurements before the event times
+  DF$Time <- Time[DF$id]
+  DF$event <- event[DF$id]
+  DF <- DF[DF$time <= DF$Time, ]
+  
+  ##saving true times
+  #checkTimes[count, ] <- trueTimes
+  
+  
+  #######Test data##################
+  W_test <- model.matrix(~ sex, data = DF_test[!duplicated(DF_test$id), ])
+  # linear predictor for the survival model
+  eta_t_test <- as.vector(W_test %*% gammas)
+  # to simulate event times we use inverse transform sampling
+  # (https://en.wikipedia.org/wiki/Inverse_transform_sampling). Namely, we want 
+  # to find t, such that S(t) = u, where S(.) is the survival function, and u a 
+  # number from the Unif(0, 1) distribution. The function below calculates 
+  # log(u) - log(S(t)), and for a given u, we want to find t for which it equals
+  # zero. We do that below using the uniroot() function
+  invS <- function (t, i) {
+    # i denotes the subject
+    sex_i <- W_test[i, 2L]
+    # h() is the hazard function and we assume a Weibull baseline hazard
+    h <- function (s) {
+      X1_at_s <- cbind(1, sex_i, s, sex_i * s)
+      Z1_at_s <- cbind(1, s)
+      X2_at_s <- cbind(1, sex_i, s)
+      Z2_at_s <- cbind(1, s)
+      X3_at_s <- cbind(1, s)
+      Z3_at_s <- cbind(1, s)
+      X4_at_s <- cbind(1, sex_i, s)
+      Z4_at_s <- cbind(1, s)
+      X5_at_s <- cbind(1, s)
+      Z5_at_s <- cbind(1, s)
+      # the linear predictor from the mixed model evaluated at time s
+      f1 <- as.vector(X1_at_s %*% betas1 +
+                        rowSums(Z1_at_s * b1_test[rep(i, nrow(Z1_at_s)), ]))
+      f2 <- as.vector(X2_at_s %*% betas2 +
+                        rowSums(Z2_at_s * b2_test[rep(i, nrow(Z2_at_s)), ]))
+      f3 <- as.vector(X3_at_s %*% betas3 +
+                        rowSums(Z3_at_s * b3_test[rep(i, nrow(Z3_at_s)), ]))
+      f4 <- as.vector(X4_at_s %*% betas4 +
+                        rowSums(Z4_at_s * b4_test[rep(i, nrow(Z4_at_s)), ]))
+      f5 <- as.vector(X5_at_s %*% betas5 +
+                        rowSums(Z5_at_s * b5_test[rep(i, nrow(Z5_at_s)), ]))
+      exp(log(shape_wb) + (shape_wb - 1) * log(s) + eta_t_test[i] 
+          + f1*alpha[1] + f2*alpha[2] + f3*alpha[3] + f4*alpha[4] + f5*alpha[5])
+    }
+    # -log(S(t)) = H(t), where H(t) is the cumulative hazard function
+    integrate(h, lower = 0, upper = t)$value + log(u[i])
+  }
+  
+  
+  
+  # we simulate the event times
+  u <- runif(n)
+  trueTimes2 <- numeric(n)
+  for (i in seq_len(n)) {
+    Up <- 100
+    Root <- try(uniroot(invS, interval = c(1e-05, Up), i = i)$root, TRUE)
+    trueTimes2[i] <- if (!inherits(Root, "try-error")) Root else 150
+  }
+  
+  ##saving truetimes
+  #checkTimes2[count, ] <- trueTimes2
+  
+  # we use random censoring:
+  Ctimes <- upp_Cens
+  Time <- pmin(trueTimes2, Ctimes)
+  event <- as.numeric(trueTimes2 <= Ctimes) # event indicator
+  
+  # we keep the longitudinal measurements before the event times
+  DF_test$Time <- Time[DF_test$id]
+  DF_test$event <- event[DF_test$id]
+  DF_test <- DF_test[DF_test$time <= DF_test$Time, ]
+  
+  ###################################################
+  #We fit the models and save the desired metrics
+  ###################################################
+  DF.id <- DF[!duplicated(DF$id),]
+  DF_test.id <- DF_test[!duplicated(DF_test$id),] 
+  ## Survival model
+  try(CoxFit <- coxph(Surv(Time, event) ~ sex, data = DF.id))
+  
+  ## Longitudinal models
+  try(LM1 <- lme(y1 ~ sex*time, data = DF, random = ~ time | id))
+  try(LM2 <- lme(y2 ~ sex + time, data = DF, random = ~ time | id))
+  try(LM3 <- lme(y3 ~ time, data = DF, random = ~ time | id))
+  try(LM4 <- mixed_model(y4 ~ sex + time, data = DF,
+                         random = ~ time || id, family = binomial()))
+  try(LM5 <- mixed_model(y5 ~ time, data = DF,
+                         random = ~ time || id, family = binomial()))
+  
+  
+  #Fitting the multivariate JM
+  try(multiJM <- jm(CoxFit, list(LM1, LM2, LM3, LM4, LM5), time_var = "time",
+                    n_iter = 14000L, n_burnin = 2500L, n_thin = 5L))
+  
+  t0 <- 4
+  dt <- 1.5
+  #for the test data
+  try(brier_score_multi_test <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt, 
+                                        integrated = TRUE))
+  try(num_at_risk[count] <- brier_score_multi_test$nr)
+  try(num_ev[count] <- brier_score_multi_test$nint)
+  try(num_cens[count] <- brier_score_multi_test$ncens)
+  
+  try(rhats <- numeric())
+  try(for(i in 1:(length(multiJM$statistics$Rhat)-2)){
+    rhats <- c(rhats, multiJM$statistics$Rhat[[i]][,1]) 
+  })
+  try(rhats <- as.numeric(rhats))
+  #We don't use which_independent = "all", because we are assuming non-indep
+  #between longitudinal outcomes  
+  cat("Multi JM fitted\n")
+  
+  
+  
+  #calculate the integrated Brier score as an overall measure of predictive 
+  #performance in (t0, t0+ Dt]=(5, 5+3]
+ 
+  #SuperLearning with the library of models built with the univariate JM
+  
+  try(CVdats <- create_folds(DF, V = 3, id_var = "id"))
+  
+  fit_models <- function (data) {
+    library("JMbayes2")
+    data_id <- data[!duplicated(data$id), ]
+    CoxFit <- coxph(Surv(Time, event) ~ sex, data = data_id)
+    LM1 <- lme(y1 ~ sex*time, data = data, random = ~ time | id)
+    LM2 <- lme(y2 ~ sex + time, data = data, random = ~ time | id)
+    LM3 <- lme(y3 ~ time, data = data, random = ~ time | id)
+    LM4 <- mixed_model(y4 ~ sex + time, data = data,
+                       random = ~ time || id, family = binomial())
+    LM5 <- mixed_model(y5 ~ time, data = data,
+                       random = ~ time || id, family = binomial())
+    JM1 <- jm(CoxFit, LM1, time_var = "time")
+    JM2 <- jm(CoxFit, LM2, time_var = "time")
+    JM3 <- jm(CoxFit, LM3, time_var = "time")
+    JM4 <- jm(CoxFit, LM4, time_var = "time")
+    JM5 <- jm(CoxFit, LM5, time_var = "time")
+    out <- list(M1 = JM1, M2 = JM2, M3 = JM3, M4 = JM4, M5 = JM5)
+    class(out) <- "jmList"
+    out
+  }
+  
+  try(cl <- parallel::makeCluster(5L))
+  try(Models_folds <- parallel::parLapply(cl, CVdats$training, fit_models))
+  try(parallel::stopCluster(cl))
+  
+  cat("Cross-validated models fitted\n")
+  
+  #computing Brier weights
+
+  cat("IBS and EPCE for SL computed\n")
+  
+  #Now with testing data
+  #We fit the models in the whole training data set and test in testing data
+  try(Models <- fit_models(DF))
+  cat("Full models fitted\n")
+  
+
+  cat("Brier and EPCE eSL in test data computed\n")
+  
+  
+
+  try(rhats_JM1 <- numeric())
+  
+  try(for(i in 1:(length(Models$M1$statistics$Rhat)-2)){
+    rhats_JM1 <- c(rhats_JM1, Models$M1$statistics$Rhat[[i]][,1]) 
+  })
+  
+  try(rhats_JM1 <- as.numeric(rhats_JM1))
+  
+  try(rhats_JM2 <- numeric())
+  
+  try(for(i in 1:(length(Models$M2$statistics$Rhat)-2)){
+    rhats_JM2 <- c(rhats_JM2, Models$M2$statistics$Rhat[[i]][,1]) 
+  })
+  try(rhats_JM2 <- as.numeric(rhats_JM2))
+  
+  try(rhats_JM3 <- numeric())
+  try(for(i in 1:(length(Models$M3$statistics$Rhat)-2)){
+    rhats_JM3 <- c(rhats_JM3, Models$M3$statistics$Rhat[[i]][,1]) 
+  })
+  try(rhats_JM3 <- as.numeric(rhats_JM3))
+  
+  try(rhats_JM4 <- numeric())
+  try(for(i in 1:(length(Models$M4$statistics$Rhat)-2)){
+    rhats_JM4 <- c(rhats_JM4, Models$M4$statistics$Rhat[[i]][,1]) 
+  })
+  try(rhats_JM4 <- as.numeric(rhats_JM4))
+  
+  try(rhats_JM5 <- numeric())
+  try(for(i in 1:(length(Models$M5$statistics$Rhat)-2)){
+    rhats_JM5 <- c(rhats_JM5, Models$M5$statistics$Rhat[[i]][,1]) 
+  })
+  try(rhats_JM5 <- as.numeric(rhats_JM5))
+  
+  
+  ####saving stuff
+  try(list_rhats_MJM <- append(list_rhats_MJM, list(rhats)))
+  try(list_rhats_JM1 <- append(list_rhats_JM1, list(rhats_JM1)))
+  try(list_rhats_JM2 <- append(list_rhats_JM2, list(rhats_JM2)))
+  try(list_rhats_JM3 <- append(list_rhats_JM3, list(rhats_JM3)))
+  try(list_rhats_JM4 <- append(list_rhats_JM4, list(rhats_JM4)))
+  try(list_rhats_JM5 <- append(list_rhats_JM5, list(rhats_JM5)))
+  
+  
+  
+  setwd("D:/La meva unitat/TFM/ResultsMMvsMFPCA")
+  
+  if(count==2){
+    strr <- "rhats_brier_13feb_3.RData"
+    save(list_rhats_MJM, list_rhats_JM1, list_rhats_JM2,
+         list_rhats_JM3, list_rhats_JM4, list_rhats_JM5, 
+         num_at_risk, num_ev, num_cens, file=strr)
+  }
+  if(count==5){
+    str1 <- "rhats_brier_13feb_5.RData"
+    save(list_rhats_MJM, list_rhats_JM1, list_rhats_JM2,
+         list_rhats_JM3, list_rhats_JM4, list_rhats_JM5,
+         num_at_risk, num_ev, num_cens, file=str1)
+  }
+  try(if(count==10){
+    str10 <- "rhats_brier_13feb_10.RData"
+    save(list_rhats_MJM, list_rhats_JM1, list_rhats_JM2,
+         list_rhats_JM3, list_rhats_JM4, list_rhats_JM5,
+         num_at_risk, num_ev, num_cens, file=str10)
+  })
+  try(if(count==20){
+    str20 <- "rhats_brier_13feb_20.RData"
+    save(list_rhats_MJM, list_rhats_JM1, list_rhats_JM2,
+         list_rhats_JM3, list_rhats_JM4, list_rhats_JM5,
+         num_at_risk, num_ev, num_cens, file=str20)
+  })
+  
+}
+
+#################################################################
+
+
+load("D:/La meva unitat/TFM/ResultsMMvsMFPCA/rhats_12feb_20.RData")
+
+list_rhats_JM1
+list_rhats_MJM
+
+for(i in 1:20){
+  print(sort(unique(list_rhats_MJM[[i]]), decreasing = TRUE)[1:10])
+}
+
+for(i in 1:20){
+  print(sort(unique(list_rhats_JM1[[i]]), decreasing = TRUE)[1:10])
+}
+
+for(i in 1:20){
+  print(sort(unique(list_rhats_JM2[[i]]), decreasing = TRUE)[1:10])
+}
+
+for(i in 1:20){
+  print(sort(unique(list_rhats_JM3[[i]]), decreasing = TRUE)[2])
+}
+
+for(i in 1:20){
+  print(sort(unique(list_rhats_JM4[[i]]), decreasing = TRUE)[2])
+}
+
+
+
+
+pbc2.id$status2 <- as.numeric(pbc2.id$status != 'alive')
+CoxFit <- coxph(Surv(years, status2) ~ sex, data = pbc2.id)
+fm1 <- lme(log(serBilir) ~ year * sex, data = pbc2, random = ~ year | id)
+fm2 <- lme(prothrombin ~ year * sex, data = pbc2, random = ~ year | id)
+fm3 <- mixed_model(ascites ~ year + sex, data = pbc2,
+                   random = ~ year || id, family = binomial())
+
+jointFit2 <- jm(CoxFit, list(fm1, fm2, fm3), time_var = "year",
+                which_independent = cbind(1, 2),
+                n_iter = 12000L, n_burnin = 2000L, n_thin = 5L)
+
+summary(jointFit2)
+jointFit2$statistics$Rhat[[2]]
+
+diab <- tvBrier(jointFit2, newdata = pbc2, Tstart = 5, Dt = 3)
+
+rhats <- numeric()
+for(i in 1:(length(jointFit2$statistics$Rhat)-2)){
+  rhats <- c(rhats, jointFit2$statistics$Rhat[[i]][,1]) 
+}
+as.numeric(rhats)
+max(as.numeric(rhats), na.rm = T)
