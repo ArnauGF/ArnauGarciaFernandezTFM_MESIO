@@ -3,7 +3,8 @@
 ## Download and analyze results of MMvsMFPCA
 #######################################################################
 #######################################################################
-load("D:/La meva unitat/TFM/ResultsMMvsMFPCA/results_100_MCAR30_3feb2025.RData")
+load("D:/La meva unitat/TFM/ResultsMMvsMFPCA/dataframes_MCAR_30.RData")
+
 
 ##let us do some plots to compare predictions
 
