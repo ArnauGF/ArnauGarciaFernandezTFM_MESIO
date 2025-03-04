@@ -837,7 +837,7 @@ ggtraceplot(multiJM, parm = "alphas")
 ## With L=4, the last outcome being a GLMM (binary longitudinal outcome)
 ####################################################################
 ####################################################################
-repl <- 3
+repl <- 30
 list_rhats_MJM <- list()
 checkTimes <- numeric(repl)
 checkTimes_test <- numeric(repl)
@@ -856,6 +856,13 @@ list_w_model_train <- list()
 list_brier_model_test <- list()
 list_w_model_test <- list()
 list_full_rhats_MJM <- list()
+IBS_multi <- IBS_multi_test  <- numeric(repl)
+dSL_cv_IBS <- eSL_cv_IBS <- dSL_test_IBS <- eSL_test_IBS <- numeric(repl)
+disSL_ibs <- numeric(repl)
+
+IBS_univ <- IBS_w  <- matrix(nrow = repl, ncol = 4)
+IBS_univ_test  <- IBS_w_test <- matrix(nrow = repl, ncol = 4)
+
 
 set.seed(1234)
 sigmaa <- matrix(c(runif(1,0.25,0.75), runif(7, -0.0005, 0.0005), 
@@ -1001,6 +1008,7 @@ for(count in 1:repl){
   shape_wb <- 1.2 # we assume exp distr and ctt baseline hazard
   alpha <- c(0.1, -0.2, 0.312) # association coefficients
   alpha <- c(0.0879, -0.43, 0.2, -0.001)
+  alpha <- c(0.0879, -0.43, 0.2, -0.0001)
   ##obs: when alpha=0 we know we have convergence
   #alpha <- 2*alpha
   gammas <- c("(Intercept)" = 0.25, "sex" = -0.5)
@@ -1182,10 +1190,7 @@ for(count in 1:repl){
   try(n_risk_train[count] <- brier_score_multi_train$nr)
   try(n_event_train[count] <- brier_score_multi_train$nint)
   try(n_cens_train[count] <- brier_score_multi_train$ncens)
-  try(list_brier_model_train <- append(list_brier_model_train, 
-                                       list(brier_score_multi_train$Brier_per_model)))
-  try(list_w_model_train <- append(list_w_model_train, 
-                                   list(brier_score_multi_train$weights)))
+
   
   
   try(brier_score_multi_test <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt, 
@@ -1194,23 +1199,106 @@ for(count in 1:repl){
   try(n_risk_test[count] <- brier_score_multi_test$nr)
   try(n_event_test[count] <- brier_score_multi_test$nint)
   try(n_cens_test[count] <- brier_score_multi_test$ncens)
-  try(list_brier_model_test <- append(list_brier_model_test, 
-                                      list(brier_score_multi_test$Brier_per_model)))
-  try(list_w_model_test <- append(list_w_model_test, 
-                                  list(brier_score_multi_test$weights)))
-  
   
   try(list_rhats_MJM <- append(list_rhats_MJM, list(rhats)))
   try(list_full_rhats_MJM <- append(list_full_rhats_MJM, 
                                     list(multiJM$statistics$Rhat)))
   
+  
+  #SuperLearning with the library of models built with the univariate JM
+  
+  try(CVdats <- create_folds(DF, V = 3, id_var = "id"))
+  
+  fit_models <- function (data) {
+    library("JMbayes2")
+    pow2 <- function(x){
+      x^2
+    }
+    data_id <- data[!duplicated(data$id), ]
+    CoxFit <- coxph(Surv(Time, event) ~ sex, data = data_id)
+    LM1 <- lme(y1 ~ sex + time, data = data, random = ~ time | id)
+    LM2 <- lme(y2 ~ time, data = data, random = ~ time | id)
+    LM3 <- lme(y3 ~ treat + pow2(time), data = data, random = ~ time | id)
+    LM4 <- mixed_model(y4 ~ sex + treat + time, data = data,
+                       random = ~ time | id, family = binomial())
+    JM1 <- jm(CoxFit, LM1, time_var = "time")
+    JM2 <- jm(CoxFit, LM2, time_var = "time")
+    JM3 <- jm(CoxFit, LM3, time_var = "time")
+    JM4 <- jm(CoxFit, LM4, time_var = "time")
+    out <- list(M1 = JM1, M2 = JM2, M3 = JM3, M4 = JM4)
+    class(out) <- "jmList"
+    out
+  }
+  ## obs: although we have used just random intercepts for the binary outcome,
+  ## when fitting the univariate joint model, we cannot use just one long 
+  ## outcome and just radom intercepts. Then, we have used for the univariate
+  ## model also random slope.
+  
+  try(cl <- parallel::makeCluster(4L))
+  try(Models_folds <- parallel::parLapply(cl, CVdats$training, fit_models))
+  try(parallel::stopCluster(cl))
+  
+  
+  #computing Brier weights
+  try(Brier_weights <- tvBrier(Models_folds, newdata = CVdats$testing, 
+                               integrated = TRUE, Tstart = t0, Dt = dt))
+  
+  #Now with testing data
+  #We fit the models in the whole training data set and test in testing data
+  try(Models <- fit_models(DF))
+  
+  try(bw <- Brier_weights$weights)
+  try(Brier_weights_test <- tvBrier(Models, newdata = DF_test, model_weights = bw, 
+                                    Tstart = t0, Dt = dt, integrated = TRUE))
+  
+  disSL_ibs[count] <- 0
+  try(disSL_ibs[count] <- which.min(Brier_weights$Brier_per_model))
+  if(disSL_ibs[count] == 1){
+    try(Brier_dSL_test <- tvBrier(Models$M1, newdata = DF_test, 
+                                  Tstart = t0, Dt = dt, integrated = TRUE))
+  } else if(disSL_ibs[count] == 2){
+    try(Brier_dSL_test <- tvBrier(Models$M2, newdata = DF_test, 
+                                  Tstart = t0, Dt = dt, integrated = TRUE))
+  } else if(disSL_ibs[count] == 3){
+    try(Brier_dSL_test <- tvBrier(Models$M3, newdata = DF_test, 
+                                  Tstart = t0, Dt = dt, integrated = TRUE))
+  } else if(disSL_ibs[count] == 4){
+    try(Brier_dSL_test <- tvBrier(Models$M4, newdata = DF_test, 
+                                  Tstart = t0, Dt = dt, integrated = TRUE))
+  } 
+
+  
+  ########################
+  #Save the desired metrics
+  ###########################
+  #try(IBS_multi[count] <- brier_score_multi$Brier)
+
+  try(IBS_univ[count, ] <- Brier_weights$Brier_per_model)
+
+  try(IBS_w[count, ] <- Brier_weights$weights)
+
+  try(dSL_cv_IBS[count] <- min(Brier_weights$Brier_per_model))
+  
+  try(dSL_test_IBS[count] <- Brier_dSL_test$Brier)
+
+  try(eSL_cv_IBS[count] <- Brier_weights$Brier)
+
+  try(eSL_test_IBS[count] <- Brier_weights_test$Brier)
+
+  #try(IBS_multi_test[count] <- brier_score_multi_test$Brier)
+  
+  
+
+  
   if(count == repl){
-    strr <- "rebuilding_simul_4outcomes_correl_typ1_25feb2025.RData"
+    strr <- "rebuilding_simul_4outcomes_correl_typ1_SL_05mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
-         list_rhats_MJM, ibs_train, ibs_test, 
+         list_rhats_MJM, list_full_rhats_MJM, ibs_train, ibs_test, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test, list_w_model_train, list_w_model_test,
-         list_brier_model_train, list_brier_model_test, 
+         list_brier_model_train, list_brier_model_test,
+         IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
+         IBS_multi_test, dSL_test_IBS, disSL_ibs,
          file=strr)
   }
   print(count)
@@ -1226,8 +1314,12 @@ for(count in 1:repl){
 ## 2) make alpha even smaller (for alpha=0 we have convergence because
 ##.   we only take into account the rest of longitudinal outcomes)
 
-df_comparing <- data.frame(IBS_train = ibs_train,
-                           IBS_test = ibs_test,
+df_comparing2 <- data.frame(IBS_mJM_train = ibs_train,
+                           IBS_mJM_test = ibs_test,
+                           IBS_eSL_train = eSL_cv_IBS,
+                           IBS_eSL_test = eSL_test_IBS,
+                           IBS_dSL_train = dSL_cv_IBS,
+                           IBS_dSL_test = dSL_test_IBS,
                            perc_cens_train = perc_cens_train,
                            perc_cens_test = perc_cens_test,
                            n_event_train = n_event_train,
@@ -1235,12 +1327,28 @@ df_comparing <- data.frame(IBS_train = ibs_train,
                            n_risk_train = n_risk_train,
                            n_risk_test = n_risk_test)
 
-mean(df_comparing$IBS_test - df_comparing$IBS_train)
+mean(df_comparing2$IBS_mJM_test - df_comparing2$IBS_mJM_train)
+mean(df_comparing2$IBS_eSL_test - df_comparing2$IBS_eSL_train)
+mean(df_comparing2$IBS_dSL_test - df_comparing2$IBS_dSL_train)
 
 list_rhats_MJM
 
-list_full_rhats_MJM[[3]]
+list_full_rhats_MJM[[1]]
 
+#boxplot IBS
+df <- with(df_comparing2, data.frame(IBS_mJM_train, IBS_mJM_test, IBS_eSL_train, IBS_eSL_test,  
+                 IBS_dSL_train, IBS_dSL_test))
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+df_long <- df %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
+
+ploty <- ggplot(df_long, aes(x = variable, y = value)) +
+  geom_boxplot() +
+  theme_minimal() +
+  xlab("") + ylab("IBS") +
+  ggtitle("Integrated Brier Score: (4.5,5.5]")
 
 
 
