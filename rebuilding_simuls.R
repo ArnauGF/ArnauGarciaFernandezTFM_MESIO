@@ -859,9 +859,16 @@ list_full_rhats_MJM <- list()
 IBS_multi <- IBS_multi_test  <- numeric(repl)
 dSL_cv_IBS <- eSL_cv_IBS <- dSL_test_IBS <- eSL_test_IBS <- numeric(repl)
 disSL_ibs <- numeric(repl)
-
 IBS_univ <- IBS_w  <- matrix(nrow = repl, ncol = 4)
 IBS_univ_test  <- IBS_w_test <- matrix(nrow = repl, ncol = 4)
+
+
+epce_train <- epce_test <- numeric(repl)
+dSL_cv_EPCE <- eSL_cv_EPCE <- dSL_test_EPCE <- eSL_test_EPCE <- numeric(repl)
+EPCE_univ <- EPCE_w <- matrix(nrow = repl, ncol = 4)
+EPCE_univ_test <- EPCE_w_test <- matrix(nrow = repl, ncol = 4)
+disSL_epce <- numeric(repl)
+
 
 
 set.seed(1234)
@@ -1006,8 +1013,8 @@ for(count in 1:repl){
   
   #parameters specification:
   shape_wb <- 1.2 # we assume exp distr and ctt baseline hazard
-  alpha <- c(0.1, -0.2, 0.312) # association coefficients
-  alpha <- c(0.0879, -0.43, 0.2, -0.001)
+  #alpha <- c(0.1, -0.2, 0.312) # association coefficients
+  #alpha <- c(0.0879, -0.43, 0.2, -0.001)
   alpha <- c(0.0879, -0.43, 0.2, -0.0001)
   ##obs: when alpha=0 we know we have convergence
   #alpha <- 2*alpha
@@ -1185,20 +1192,26 @@ for(count in 1:repl){
   t0 <- 4.5
   dt <- 1
   try(brier_score_multi_train <- tvBrier(multiJM, newdata = DF, Tstart = t0, Dt = dt, 
-                                         integrated = TRUE))
+                                         integrated = TRUE, type_weights = "IPCW"))
   try(ibs_train[count] <- brier_score_multi_train$Brier)
   try(n_risk_train[count] <- brier_score_multi_train$nr)
   try(n_event_train[count] <- brier_score_multi_train$nint)
   try(n_cens_train[count] <- brier_score_multi_train$ncens)
+  
+  try(EPCE_score_multi_train <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt))
+  try(epce_train[count] <- EPCE_score_multi_train$EPCE)
 
   
   
   try(brier_score_multi_test <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt, 
-                                        integrated = TRUE))
+                                        integrated = TRUE, type_weights = "IPCW"))
   try(ibs_test[count] <- brier_score_multi_test$Brier)
   try(n_risk_test[count] <- brier_score_multi_test$nr)
   try(n_event_test[count] <- brier_score_multi_test$nint)
   try(n_cens_test[count] <- brier_score_multi_test$ncens)
+  
+  try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt))
+  try(epce_test[count] <- EPCE_score_multi_test$EPCE)
   
   try(list_rhats_MJM <- append(list_rhats_MJM, list(rhats)))
   try(list_full_rhats_MJM <- append(list_full_rhats_MJM, 
@@ -1239,9 +1252,13 @@ for(count in 1:repl){
   try(parallel::stopCluster(cl))
   
   
-  #computing Brier weights
+
   try(Brier_weights <- tvBrier(Models_folds, newdata = CVdats$testing, 
-                               integrated = TRUE, Tstart = t0, Dt = dt))
+                               integrated = TRUE, Tstart = t0, Dt = dt,
+                               type_weights = "IPCW"))
+  
+  try(EPCE_weights <- tvEPCE(Models_folds, newdata = CVdats$testing, 
+                             Tstart = t0, Dt = dt))
   
   #Now with testing data
   #We fit the models in the whole training data set and test in testing data
@@ -1249,56 +1266,82 @@ for(count in 1:repl){
   
   try(bw <- Brier_weights$weights)
   try(Brier_weights_test <- tvBrier(Models, newdata = DF_test, model_weights = bw, 
-                                    Tstart = t0, Dt = dt, integrated = TRUE))
+                                    Tstart = t0, Dt = dt, integrated = TRUE,
+                                    type_weights = "IPCW"))
+  
+  try(ew <- EPCE_weights$weights)
+  try(EPCE_weights_test <- tvEPCE(Models, newdata = DF_test, model_weights = ew,
+                                  Tstart = t0, Dt = dt))
   
   disSL_ibs[count] <- 0
   try(disSL_ibs[count] <- which.min(Brier_weights$Brier_per_model))
   if(disSL_ibs[count] == 1){
     try(Brier_dSL_test <- tvBrier(Models$M1, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE))
+                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  type_weights = "IPCW"))
   } else if(disSL_ibs[count] == 2){
     try(Brier_dSL_test <- tvBrier(Models$M2, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE))
+                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  type_weights = "IPCW"))
   } else if(disSL_ibs[count] == 3){
     try(Brier_dSL_test <- tvBrier(Models$M3, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE))
+                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  type_weights = "IPCW"))
   } else if(disSL_ibs[count] == 4){
     try(Brier_dSL_test <- tvBrier(Models$M4, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE))
+                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  type_weights = "IPCW"))
   } 
-
+  
+  disSL_epce[count] <- 0
+  try(disSL_epce[count] <- which.min(EPCE_weights$EPCE_per_model))
+  if(disSL_epce[count] == 1){
+    try(EPCE_dSL_test <- tvEPCE(Models$M1, newdata = DF_test,
+                                Tstart = t0, Dt = dt))
+  } else if(disSL_epce[count] == 2){
+    try(EPCE_dSL_test <- tvEPCE(Models$M2, newdata = DF_test,
+                                Tstart = t0, Dt = dt))
+  } else if(disSL_epce[count] == 3){
+    try(EPCE_dSL_test <- tvEPCE(Models$M3, newdata = DF_test,
+                                Tstart = t0, Dt = dt))
+  } else if(disSL_epce[count] == 4){
+    try(EPCE_dSL_test <- tvEPCE(Models$M4, newdata = DF_test,
+                                Tstart = t0, Dt = dt))
+  } 
   
   ########################
   #Save the desired metrics
   ###########################
-  #try(IBS_multi[count] <- brier_score_multi$Brier)
 
   try(IBS_univ[count, ] <- Brier_weights$Brier_per_model)
-
+  try(EPCE_univ[count, ] <- EPCE_weights$EPCE_per_model)
   try(IBS_w[count, ] <- Brier_weights$weights)
-
+  try(EPCE_w[count, ] <- EPCE_weights$weights)
   try(dSL_cv_IBS[count] <- min(Brier_weights$Brier_per_model))
-  
-  try(dSL_test_IBS[count] <- Brier_dSL_test$Brier)
-
+  try(dSL_cv_EPCE[count] <- min(EPCE_weights$EPCE_per_model))
   try(eSL_cv_IBS[count] <- Brier_weights$Brier)
-
+  try(eSL_cv_EPCE[count] <- EPCE_weights$EPCE)
   try(eSL_test_IBS[count] <- Brier_weights_test$Brier)
+  try(eSL_test_EPCE[count] <- EPCE_weights_test$EPCE)
+  try(dSL_test_IBS[count] <- Brier_dSL_test$Brier)
+  try(dSL_test_EPCE[count] <- EPCE_dSL_test$EPCE)
 
-  #try(IBS_multi_test[count] <- brier_score_multi_test$Brier)
+
   
   
 
   
   if(count == repl){
-    strr <- "rebuilding_simul_4outcomes_correl_typ1_SL_05mar2025.RData"
+    strr <- "ibsipcw_epce_simul_4outcomes_correl_typ1_SL_05mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, ibs_train, ibs_test, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test, list_w_model_train, list_w_model_test,
          list_brier_model_train, list_brier_model_test,
          IBS_multi, IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
-         IBS_multi_test, dSL_test_IBS, disSL_ibs,
+         IBS_multi_test, dSL_test_IBS, disSL_ibs, 
+         EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
+         epce_train, epce_test,
          file=strr)
   }
   print(count)
@@ -1314,7 +1357,7 @@ for(count in 1:repl){
 ## 2) make alpha even smaller (for alpha=0 we have convergence because
 ##.   we only take into account the rest of longitudinal outcomes)
 
-df_comparing2 <- data.frame(IBS_mJM_train = ibs_train,
+df_comparing3 <- data.frame(IBS_mJM_train = ibs_train,
                            IBS_mJM_test = ibs_test,
                            IBS_eSL_train = eSL_cv_IBS,
                            IBS_eSL_test = eSL_test_IBS,
@@ -1326,6 +1369,11 @@ df_comparing2 <- data.frame(IBS_mJM_train = ibs_train,
                            n_event_test = n_event_test,
                            n_risk_train = n_risk_train,
                            n_risk_test = n_risk_test)
+
+df_comparing3_pooled <- df_comparing3[-c(15,21,30),]
+
+full <- rbind(df_comparing3_pooled, df_comparing2)
+
 
 mean(df_comparing2$IBS_mJM_test - df_comparing2$IBS_mJM_train)
 mean(df_comparing2$IBS_eSL_test - df_comparing2$IBS_eSL_train)
@@ -1341,13 +1389,40 @@ df <- with(df_comparing2, data.frame(IBS_mJM_train, IBS_mJM_test, IBS_eSL_train,
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+
+
+#boxplot IBS
+df <- with(full, data.frame("dSL CV Data" = IBS_dSL_train,
+                 "eSL CV Data" = IBS_eSL_train,
+                 "Multivariate model CV Data" = IBS_mJM_train,
+                 "dSL Test Data" = IBS_dSL_test,
+                 "eSL Test Data" = IBS_eSL_test,
+                 "Multivariate model Test Data" = IBS_mJM_test))
 df_long <- df %>%
   pivot_longer(cols = everything(), names_to = "variable", values_to = "value")
 
-ploty <- ggplot(df_long, aes(x = variable, y = value)) +
-  geom_boxplot() +
+df_long$variable <- factor(df_long$variable,
+                           levels = c("dSL.CV.Data",
+                                      "eSL.CV.Data",
+                                      "Multivariate.model.CV.Data",
+                                      "dSL.Test.Data",
+                                      "eSL.Test.Data",
+                                      "Multivariate.model.Test.Data"))
+
+ploty_2 <- ggplot(df_long, aes(x = variable, y = value)) +
+  geom_boxplot(fill = "lightblue") +
   theme_minimal() +
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        plot.title = element_text(size = 20)) +
   xlab("") + ylab("IBS") +
+  scale_x_discrete(labels = c("dSL.CV.Data" = "dSL CV Data",
+                              "eSL.CV.Data" = "eSL CV Data",
+                              "Multivariate.model.CV.Data" = "Multivariate JM\n CV Data",
+                              "dSL.Test.Data" = "dSL Test Data",
+                              "eSL.Test.Data" = "eSL Test Data",
+                              "Multivariate.model.Test.Data" = "Multivariate JM\n Test Data"))+
+  geom_vline(xintercept = (3+4)/2, linetype = "dashed", color = "grey", linewidth = 0.5)+
   ggtitle("Integrated Brier Score: (4.5,5.5]")
 
 
