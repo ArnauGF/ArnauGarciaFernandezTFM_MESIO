@@ -484,7 +484,8 @@ for(count in 1:repl){
   
   
   if(count == repl){
-    strr <- "ibsipcw_epce_simul_4outcomes_correl_randCens_SL_07mar2025.RData"
+    setwd("D:/La meva unitat/TFM/results_SLvsmJM")
+    strr <- "ibsipcw_epce_simul_4outcomes_correl_randCens_SL_08mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, ibs_train, ibs_test, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
