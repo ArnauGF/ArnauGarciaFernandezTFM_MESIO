@@ -7,6 +7,10 @@ library(lattice)
 library(dplyr)
 library(tidyr)
 
+pow2 <- function(x){
+  x^2
+}
+
 # we load the lists of data sets
 load("G:/TFM/SLinJointModels/simul_SL/datasets_SL_14mar2025.RData")
 
