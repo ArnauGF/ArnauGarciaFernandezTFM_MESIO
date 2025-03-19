@@ -68,8 +68,8 @@ for(count in 1:repl){
   K <- 10 # number of measurements per subject
   
   # we set DF ans DF_test to the corresponding element of the list
-  DF <- list_DF[[2]]
-  DF_test <- list_DF_test[[2]]
+  DF <- list_DF[[count]]
+  DF_test <- list_DF_test[[count]]
   
   ##saving true times
   trueTimes <- DF[!duplicated(DF$id),]$Time
@@ -168,13 +168,13 @@ for(count in 1:repl){
   try(n_cens_train_2[count] <- brier_score_multi_train_2$ncens)
   
   ## EPCE in (6,7.5]:
-  try(EPCE_score_multi_train_lel <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt - 0.05,
-                                       eps = 0.01))
+  try(EPCE_score_multi_train <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt - 0.05,
+                                       eps = 0.001))
   try(epce_train[count] <- EPCE_score_multi_train$EPCE)
   
   ## EPCE in (4,5.5]:
   try(EPCE_score_multi_train_2 <- tvEPCE(multiJM, newdata = DF, Tstart = t0_2, Dt = dt_2,
-                                       eps = 0.01))
+                                       eps = 0.001))
   try(epce_train_2[count] <- EPCE_score_multi_train_2$EPCE)
   
   ## IBS in test in (6,7.5]:
@@ -195,12 +195,12 @@ for(count in 1:repl){
   
   ##EPCE in test in (6,7.5]:
   try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt - 0.05,
-                                      eps = 0.01))
+                                      eps = 0.001))
   try(epce_test[count] <- EPCE_score_multi_test$EPCE)
   
   ##EPCE in test in (4,5.5]:
   try(EPCE_score_multi_test_2 <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0_2, Dt = dt_2,
-                                      eps = 0.01))
+                                      eps = 0.001))
   try(epce_test_2[count] <- EPCE_score_multi_test_2$EPCE)
   
   
@@ -251,12 +251,12 @@ for(count in 1:repl){
   ## EPCE for CV data in (6,7.5]:
   try(EPCE_weights <- tvEPCE(Models_folds, newdata = CVdats$testing, 
                              Tstart = t0, Dt = dt - 0.05,
-                             eps = 0.01))
+                             eps = 0.001))
   
   ## EPCE for CV data in (4,5.5]:
   try(EPCE_weights_2 <- tvEPCE(Models_folds, newdata = CVdats$testing, 
                              Tstart = t0_2, Dt = dt_2,
-                             eps = 0.01))
+                             eps = 0.001))
   
   #Now with testing data
   #We fit the models in the whole training data set and test in testing data
@@ -278,13 +278,13 @@ for(count in 1:repl){
   try(ew <- EPCE_weights$weights)
   try(EPCE_weights_test <- tvEPCE(Models, newdata = DF_test, model_weights = ew,
                                   Tstart = t0, Dt = dt - 0.05,
-                                  eps = 0.01))
+                                  eps = 0.001))
   
   ## EPCE in (4,5.5]
   try(ew_2 <- EPCE_weights_2$weights)
   try(EPCE_weights_test_2 <- tvEPCE(Models, newdata = DF_test, model_weights = ew_2,
                                   Tstart = t0_2, Dt = dt_2,
-                                  eps = 0.01))
+                                  eps = 0.001))
   
   ## IBS in (6,7.5]:
   disSL_ibs[count] <- 0
@@ -334,19 +334,19 @@ for(count in 1:repl){
   if(disSL_epce[count] == 1){
     try(EPCE_dSL_test <- tvEPCE(Models$M1, newdata = DF_test,
                                 Tstart = t0, Dt = dt - 0.05,
-                                eps = 0.01))
+                                eps = 0.001))
   } else if(disSL_epce[count] == 2){
     try(EPCE_dSL_test <- tvEPCE(Models$M2, newdata = DF_test,
                                 Tstart = t0, Dt = dt - 0.05,
-                                eps = 0.01))
+                                eps = 0.001))
   } else if(disSL_epce[count] == 3){
     try(EPCE_dSL_test <- tvEPCE(Models$M3, newdata = DF_test,
                                 Tstart = t0, Dt = dt - 0.05,
-                                eps = 0.01))
+                                eps = 0.001))
   } else if(disSL_epce[count] == 4){
     try(EPCE_dSL_test <- tvEPCE(Models$M4, newdata = DF_test,
                                 Tstart = t0, Dt = dt - 0.05,
-                                eps = 0.01))
+                                eps = 0.001))
   } 
   
   ## EPCE in (4,5.5]:
@@ -355,19 +355,19 @@ for(count in 1:repl){
   if(disSL_epce_2[count] == 1){
     try(EPCE_dSL_test_2 <- tvEPCE(Models$M1, newdata = DF_test,
                                 Tstart = t0_2, Dt = dt_2,
-                                eps = 0.01))
+                                eps = 0.001))
   } else if(disSL_epce_2[count] == 2){
     try(EPCE_dSL_test_2 <- tvEPCE(Models$M2, newdata = DF_test,
                                 Tstart = t0_2, Dt = dt_2,
-                                eps = 0.01))
+                                eps = 0.001))
   } else if(disSL_epce_2[count] == 3){
     try(EPCE_dSL_test_2 <- tvEPCE(Models$M3, newdata = DF_test,
                                 Tstart = t0_2, Dt = dt_2,
-                                eps = 0.01))
+                                eps = 0.001))
   } else if(disSL_epce_2[count] == 4){
     try(EPCE_dSL_test_2 <- tvEPCE(Models$M4, newdata = DF_test,
                                 Tstart = t0_2, Dt = dt_2,
-                                eps = 0.01))
+                                eps = 0.001))
   } 
   
   ########################
@@ -402,11 +402,10 @@ for(count in 1:repl){
   try(dSL_test_IBS_2[count] <- Brier_dSL_test_2$Brier)
   try(dSL_test_EPCE_2[count] <- EPCE_dSL_test_2$EPCE)
   
-  paste0(count, " Admin Cens")
   
   try(if(count==10){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str10 <- "repl10_adminCens_30_18mar2025.RData"
+    str10 <- "repl10_adminCens_30_19mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -429,7 +428,7 @@ for(count in 1:repl){
   })
   try(if(count==25){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str25 <- "repl25_adminCens_30_18mar2025.RData"
+    str25 <- "repl25_adminCens_30_19mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -452,7 +451,7 @@ for(count in 1:repl){
   })
   try(if(count==50){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str50 <- "repl50_adminCens_30_18mar2025.RData"
+    str50 <- "repl50_adminCens_30_19mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -475,7 +474,7 @@ for(count in 1:repl){
   })
   try(if(count==75){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str75 <- "repl75_adminCens_30_18mar2025.RData"
+    str75 <- "repl75_adminCens_30_19mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -499,7 +498,7 @@ for(count in 1:repl){
   
   if(count == repl){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    strr <- "repl100_adminCens_30_18mar2025.RData"
+    strr <- "repl100_adminCens_30_19mar2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -520,4 +519,6 @@ for(count in 1:repl){
          disSL_epce_2,
          file=strr)
   }
+  
+  print(count)
 }
