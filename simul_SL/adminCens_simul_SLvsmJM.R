@@ -68,8 +68,8 @@ for(count in 1:repl){
   K <- 10 # number of measurements per subject
   
   # we set DF ans DF_test to the corresponding element of the list
-  DF <- list_DF[[count]]
-  DF_test <- list_DF_test[[count]]
+  DF <- list_DF[[2]]
+  DF_test <- list_DF_test[[2]]
   
   ##saving true times
   trueTimes <- DF[!duplicated(DF$id),]$Time
@@ -80,7 +80,7 @@ for(count in 1:repl){
   checkTimes_test[count] <- sum(trueTimes_test==150)/n_test
   
   #simulating censoring; Type I
-  Ctimes <- 7.45
+  Ctimes <- 7.5
   Time <- pmin(trueTimes, Ctimes)
   event <- as.numeric(trueTimes <= Ctimes) # event indicator
   # we keep the longitudinal measurements before the event times
@@ -168,7 +168,7 @@ for(count in 1:repl){
   try(n_cens_train_2[count] <- brier_score_multi_train_2$ncens)
   
   ## EPCE in (6,7.5]:
-  try(EPCE_score_multi_train <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt,
+  try(EPCE_score_multi_train_lel <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt - 0.05,
                                        eps = 0.01))
   try(epce_train[count] <- EPCE_score_multi_train$EPCE)
   
@@ -194,7 +194,7 @@ for(count in 1:repl){
   try(n_cens_test_2[count] <- brier_score_multi_test_2$ncens)
   
   ##EPCE in test in (6,7.5]:
-  try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt,
+  try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt - 0.05,
                                       eps = 0.01))
   try(epce_test[count] <- EPCE_score_multi_test$EPCE)
   
@@ -250,7 +250,7 @@ for(count in 1:repl){
   
   ## EPCE for CV data in (6,7.5]:
   try(EPCE_weights <- tvEPCE(Models_folds, newdata = CVdats$testing, 
-                             Tstart = t0, Dt = dt,
+                             Tstart = t0, Dt = dt - 0.05,
                              eps = 0.01))
   
   ## EPCE for CV data in (4,5.5]:
@@ -277,7 +277,7 @@ for(count in 1:repl){
   ## EPCE in (6,7.5]
   try(ew <- EPCE_weights$weights)
   try(EPCE_weights_test <- tvEPCE(Models, newdata = DF_test, model_weights = ew,
-                                  Tstart = t0, Dt = dt,
+                                  Tstart = t0, Dt = dt - 0.05,
                                   eps = 0.01))
   
   ## EPCE in (4,5.5]
@@ -333,19 +333,19 @@ for(count in 1:repl){
   try(disSL_epce[count] <- which.min(EPCE_weights$EPCE_per_model))
   if(disSL_epce[count] == 1){
     try(EPCE_dSL_test <- tvEPCE(Models$M1, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
+                                Tstart = t0, Dt = dt - 0.05,
                                 eps = 0.01))
   } else if(disSL_epce[count] == 2){
     try(EPCE_dSL_test <- tvEPCE(Models$M2, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
+                                Tstart = t0, Dt = dt - 0.05,
                                 eps = 0.01))
   } else if(disSL_epce[count] == 3){
     try(EPCE_dSL_test <- tvEPCE(Models$M3, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
+                                Tstart = t0, Dt = dt - 0.05,
                                 eps = 0.01))
   } else if(disSL_epce[count] == 4){
     try(EPCE_dSL_test <- tvEPCE(Models$M4, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
+                                Tstart = t0, Dt = dt - 0.05,
                                 eps = 0.01))
   } 
   
@@ -402,6 +402,7 @@ for(count in 1:repl){
   try(dSL_test_IBS_2[count] <- Brier_dSL_test_2$Brier)
   try(dSL_test_EPCE_2[count] <- EPCE_dSL_test_2$EPCE)
   
+  paste0(count, " Admin Cens")
   
   try(if(count==10){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
@@ -519,5 +520,4 @@ for(count in 1:repl){
          disSL_epce_2,
          file=strr)
   }
-  paste0(count, " Admin Cens")
 }
