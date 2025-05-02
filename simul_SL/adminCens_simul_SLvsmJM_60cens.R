@@ -62,7 +62,7 @@ disSL_epce_2 <- numeric(repl)
 
 
 
-for(count in 1:repl){
+for(count in 76:repl){
   n <- 250 # number of subjects
   n_test <- 250
   K <- 10 # number of measurements per subject
@@ -152,7 +152,7 @@ for(count in 1:repl){
   dt_2 <- 1.5
   
   ## IBS im (6,7.5]:
-  try(brier_score_multi_train <- tvBrier(multiJM, newdata = DF, Tstart = t0, Dt = dt, 
+  try(brier_score_multi_train <- tvBrier(multiJM, newdata = DF, Tstart = t0, Dt = dt - 1.06, 
                                          integrated = TRUE, type_weights = "IPCW"))
   try(ibs_train[count] <- brier_score_multi_train$Brier)
   try(n_risk_train[count] <- brier_score_multi_train$nr)
@@ -168,7 +168,7 @@ for(count in 1:repl){
   try(n_cens_train_2[count] <- brier_score_multi_train_2$ncens)
   
   ## EPCE in (6,7.5]:
-  try(EPCE_score_multi_train <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt - 0.05,
+  try(EPCE_score_multi_train <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt - 1.06,
                                        eps = 0.001))
   try(epce_train[count] <- EPCE_score_multi_train$EPCE)
   
@@ -178,7 +178,7 @@ for(count in 1:repl){
   try(epce_train_2[count] <- EPCE_score_multi_train_2$EPCE)
   
   ## IBS in test in (6,7.5]:
-  try(brier_score_multi_test <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt, 
+  try(brier_score_multi_test <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt - 1.06, 
                                         integrated = TRUE, type_weights = "IPCW"))
   try(ibs_test[count] <- brier_score_multi_test$Brier)
   try(n_risk_test[count] <- brier_score_multi_test$nr)
@@ -194,7 +194,7 @@ for(count in 1:repl){
   try(n_cens_test_2[count] <- brier_score_multi_test_2$ncens)
   
   ##EPCE in test in (6,7.5]:
-  try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt - 0.05,
+  try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt - 1.06,
                                       eps = 0.001))
   try(epce_test[count] <- EPCE_score_multi_test$EPCE)
   
@@ -240,7 +240,7 @@ for(count in 1:repl){
   
   ## IBS for CV data in (6,7.5]:
   try(Brier_weights <- tvBrier(Models_folds, newdata = CVdats$testing, 
-                               integrated = TRUE, Tstart = t0, Dt = dt,
+                               integrated = TRUE, Tstart = t0, Dt = dt - 1.06,
                                type_weights = "IPCW"))
   
   ## IBS for CV data in (4,5.5]:
@@ -250,7 +250,7 @@ for(count in 1:repl){
   
   ## EPCE for CV data in (6,7.5]:
   try(EPCE_weights <- tvEPCE(Models_folds, newdata = CVdats$testing, 
-                             Tstart = t0, Dt = dt - 0.05,
+                             Tstart = t0, Dt = dt - 1.06,
                              eps = 0.001))
   
   ## EPCE for CV data in (4,5.5]:
@@ -265,7 +265,7 @@ for(count in 1:repl){
   ## IBS in (6,7.5]
   try(bw <- Brier_weights$weights)
   try(Brier_weights_test <- tvBrier(Models, newdata = DF_test, model_weights = bw, 
-                                    Tstart = t0, Dt = dt, integrated = TRUE,
+                                    Tstart = t0, Dt = dt - 1.06, integrated = TRUE,
                                     type_weights = "IPCW"))
   
   ## IBS in (4,5.5]
@@ -277,7 +277,7 @@ for(count in 1:repl){
   ## EPCE in (6,7.5]
   try(ew <- EPCE_weights$weights)
   try(EPCE_weights_test <- tvEPCE(Models, newdata = DF_test, model_weights = ew,
-                                  Tstart = t0, Dt = dt - 0.05,
+                                  Tstart = t0, Dt = dt - 1.06,
                                   eps = 0.001))
   
   ## EPCE in (4,5.5]
@@ -291,19 +291,19 @@ for(count in 1:repl){
   try(disSL_ibs[count] <- which.min(Brier_weights$Brier_per_model))
   if(disSL_ibs[count] == 1){
     try(Brier_dSL_test <- tvBrier(Models$M1, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  Tstart = t0, Dt = dt - 1.06, integrated = TRUE,
                                   type_weights = "IPCW"))
   } else if(disSL_ibs[count] == 2){
     try(Brier_dSL_test <- tvBrier(Models$M2, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  Tstart = t0, Dt = dt - 1.06, integrated = TRUE,
                                   type_weights = "IPCW"))
   } else if(disSL_ibs[count] == 3){
     try(Brier_dSL_test <- tvBrier(Models$M3, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  Tstart = t0, Dt = dt - 1.06, integrated = TRUE,
                                   type_weights = "IPCW"))
   } else if(disSL_ibs[count] == 4){
     try(Brier_dSL_test <- tvBrier(Models$M4, newdata = DF_test, 
-                                  Tstart = t0, Dt = dt, integrated = TRUE,
+                                  Tstart = t0, Dt = dt - 1.06, integrated = TRUE,
                                   type_weights = "IPCW"))
   } 
   
@@ -333,19 +333,19 @@ for(count in 1:repl){
   try(disSL_epce[count] <- which.min(EPCE_weights$EPCE_per_model))
   if(disSL_epce[count] == 1){
     try(EPCE_dSL_test <- tvEPCE(Models$M1, newdata = DF_test,
-                                Tstart = t0, Dt = dt - 0.05,
+                                Tstart = t0, Dt = dt - 1.06,
                                 eps = 0.001))
   } else if(disSL_epce[count] == 2){
     try(EPCE_dSL_test <- tvEPCE(Models$M2, newdata = DF_test,
-                                Tstart = t0, Dt = dt - 0.05,
+                                Tstart = t0, Dt = dt - 1.06,
                                 eps = 0.001))
   } else if(disSL_epce[count] == 3){
     try(EPCE_dSL_test <- tvEPCE(Models$M3, newdata = DF_test,
-                                Tstart = t0, Dt = dt - 0.05,
+                                Tstart = t0, Dt = dt - 1.06,
                                 eps = 0.001))
   } else if(disSL_epce[count] == 4){
     try(EPCE_dSL_test <- tvEPCE(Models$M4, newdata = DF_test,
-                                Tstart = t0, Dt = dt - 0.05,
+                                Tstart = t0, Dt = dt - 1.06,
                                 eps = 0.001))
   } 
   
@@ -498,7 +498,7 @@ for(count in 1:repl){
   
   if(count == repl){
     setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    strr <- "repl100_adminCens_60_07apr2025.RData"
+    strr <- "repl75to100_adminCens_60_29apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
