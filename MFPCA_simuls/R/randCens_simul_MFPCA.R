@@ -13,7 +13,7 @@ pow2 <- function(x){
 }
 
 ## Loading random cens 30% datasets
-load("")
+load("D:/La meva unitat/TFM/MFPCA_simuls/R/datasets/datasets_randCens_MFPCA_29apr2025.RData")
 
 
 repl <- 100
@@ -371,8 +371,7 @@ for(count in 1:repl){
   
   
   try(if(count==10){
-    setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str10 <- "repl10_randCens_30_25mar2025.RData"
+    str10 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl10_randCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -394,8 +393,7 @@ for(count in 1:repl){
          file=str10)
   })
   try(if(count==25){
-    setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str25 <- "repl25_randCens_30_25mar2025.RData"
+    str25 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl25_randCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -417,8 +415,7 @@ for(count in 1:repl){
          file=str25)
   })
   try(if(count==50){
-    setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str50 <- "repl50_randCens_30_25mar2025.RData"
+    str50 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl50_randCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -440,8 +437,7 @@ for(count in 1:repl){
          file=str50)
   })
   try(if(count==75){
-    setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    str75 <- "repl75_randCens_30_25mar2025.RData"
+    str75 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl75_randCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -464,8 +460,7 @@ for(count in 1:repl){
   })
   
   if(count == repl){
-    setwd("D:/La meva unitat/TFM/results_SLvsmJM")
-    strr <- "repl100_randCens_30_25mar2025.RData"
+    strr <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl100_randCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,

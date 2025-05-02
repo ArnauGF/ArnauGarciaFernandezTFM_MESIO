@@ -9,7 +9,7 @@ pow2 <- function(x){
 }
 
 ## Loading admin cens 30% datasets
-load("")
+load("D:/La meva unitat/TFM/MFPCA_simuls/R/datasets/datasets_adminCens_MFPCA_29apr2025.RData")
 
 repl <- 100
 list_rhats_MJM <- list()
@@ -72,8 +72,8 @@ for(count in 1:repl){
   K <- 10 # number of measurements per subject
   
   # we set DF ans DF_test to the corresponding element of the list
-  DF <- list_DF[[count]]
-  DF_test <- list_DF_test[[count]]
+  DF <- list_DF_adminCens[[count]]
+  DF_test <- list_DF_test_adminCens[[count]]
 
   ## Checking % of censoring
   perc_cens_train[count] <- sum(DF$event==0)/n
@@ -363,8 +363,7 @@ for(count in 1:repl){
   
   
   try(if(count==10){
-    setwd("G:/La meva unitat/TFM/MFPCA_simuls/results")
-    str10 <- "repl10_adminCens_30_29apr2025.RData"
+    str10 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl10_adminCens_30_29apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -386,8 +385,7 @@ for(count in 1:repl){
          file=str10)
   })
   try(if(count==25){
-    setwd("G:/La meva unitat/TFM/MFPCA_simuls/results")
-    str25 <- "repl25_adminCens_30_19mar2025.RData"
+    str25 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl25_adminCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -409,8 +407,7 @@ for(count in 1:repl){
          file=str25)
   })
   try(if(count==50){
-    setwd("G:/La meva unitat/TFM/MFPCA_simuls/results")
-    str50 <- "repl50_adminCens_30_19mar2025.RData"
+    str50 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl50_adminCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -432,8 +429,7 @@ for(count in 1:repl){
          file=str50)
   })
   try(if(count==75){
-    setwd("G:/La meva unitat/TFM/MFPCA_simuls/results")
-    str75 <- "repl75_adminCens_30_19mar2025.RData"
+    str75 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl75_adminCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
@@ -456,8 +452,7 @@ for(count in 1:repl){
   })
   
   if(count == repl){
-    setwd("G:/La meva unitat/TFM/MFPCA_simuls/results")
-    strr <- "repl100_adminCens_30_19mar2025.RData"
+    strr <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl100_adminCens_30_2apr2025.RData"
     save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,

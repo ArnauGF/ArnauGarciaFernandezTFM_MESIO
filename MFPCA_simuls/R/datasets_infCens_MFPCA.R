@@ -9,7 +9,7 @@ pow2 <- function(x){
 }
 
 # we load the lists of data sets
-load("G:/La meva unitat/TFM/MFPCA_simuls/R/datasets_MFPCAvsSL_29apr2025.RData")
+load("D:/La meva unitat/TFM/MFPCA_simuls/R/datasets/datasets_MFPCAvsSL_29apr2025.RData")
 
 
 repl <- 100
@@ -133,12 +133,12 @@ for(count in 1:repl){
   
   
   ## We save the datasets
-  list_DF <- append(list_DF_infCens, list(DF))
-  list_DF_test <- append(list_DF_test_infCens, list(DF_test))
+  list_DF_infCens <- append(list_DF_infCens, list(DF))
+  list_DF_test_infCens <- append(list_DF_test_infCens, list(DF_test))
   
   if(count == repl){
-    save(list_DF, list_DF_test,
-         file="G:/La meva unitat/TFM/MFPCA_simuls/R/datasets_informativeCens_MFPCA_29apr2025.RData")
+    save(list_DF_infCens, list_DF_test_infCens,
+         file="D:/La meva unitat/TFM/MFPCA_simuls/R/datasets/datasets_infCens_MFPCA_29apr2025.RData")
   }
   
   print(count)
