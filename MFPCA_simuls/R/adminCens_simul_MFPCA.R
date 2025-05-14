@@ -364,7 +364,7 @@ for(count in 1:repl){
   
   try(if(count==10){
     str10 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl10_adminCens_30_29apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
@@ -386,7 +386,7 @@ for(count in 1:repl){
   })
   try(if(count==25){
     str25 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl25_adminCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
@@ -408,7 +408,7 @@ for(count in 1:repl){
   })
   try(if(count==50){
     str50 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl50_adminCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
@@ -430,7 +430,7 @@ for(count in 1:repl){
   })
   try(if(count==75){
     str75 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl75_adminCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
@@ -453,7 +453,7 @@ for(count in 1:repl){
   
   if(count == repl){
     strr <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl100_adminCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
@@ -476,3 +476,5 @@ for(count in 1:repl){
   
   print(count)
 }
+
+

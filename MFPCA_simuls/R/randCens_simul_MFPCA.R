@@ -13,8 +13,8 @@ pow2 <- function(x){
 }
 
 ## Loading random cens 30% datasets
-load("D:/La meva unitat/TFM/MFPCA_simuls/R/datasets/datasets_randCens_MFPCA_29apr2025.RData")
-
+#load("D:/La meva unitat/TFM/MFPCA_simuls/R/datasets/datasets_randCens_MFPCA_29apr2025.RData")
+load("G:/TFM/SLinJointModels/MFPCA_simuls/R/datasets_randCens_MFPCA_29apr2025.RData")
 
 repl <- 100
 list_rhats_MJM <- list()
@@ -39,11 +39,6 @@ disSL_ibs <- numeric(repl)
 IBS_univ <- IBS_w  <- matrix(nrow = repl, ncol = 4)
 IBS_univ_test  <- IBS_w_test <- matrix(nrow = repl, ncol = 4)
 
-epce_train <- epce_test <- numeric(repl)
-dSL_cv_EPCE <- eSL_cv_EPCE <- dSL_test_EPCE <- eSL_test_EPCE <- numeric(repl)
-EPCE_univ <- EPCE_w <- matrix(nrow = repl, ncol = 4)
-EPCE_univ_test <- EPCE_w_test <- matrix(nrow = repl, ncol = 4)
-disSL_epce <- numeric(repl)
 
 ##metrics for the second interval:
 ibs_train_2 <- numeric(repl)
@@ -63,12 +58,6 @@ disSL_ibs_2 <- numeric(repl)
 IBS_univ_2 <- IBS_w_2  <- matrix(nrow = repl, ncol = 4)
 IBS_univ_test_2  <- IBS_w_test_2 <- matrix(nrow = repl, ncol = 4)
 
-epce_train_2 <- epce_test_2 <- numeric(repl)
-dSL_cv_EPCE_2 <- eSL_cv_EPCE_2 <- dSL_test_EPCE_2 <- eSL_test_EPCE_2 <- numeric(repl)
-EPCE_univ_2 <- EPCE_w_2 <- matrix(nrow = repl, ncol = 4)
-EPCE_univ_test_2 <- EPCE_w_test_2 <- matrix(nrow = repl, ncol = 4)
-disSL_epce_2 <- numeric(repl)
-
 
 for(count in 1:repl){
   n <- 175 # number of subjects
@@ -76,8 +65,8 @@ for(count in 1:repl){
   K <- 10 # number of measurements per subject
   
   # we set DF ans DF_test to the corresponding element of the list
-  DF <- list_DF[[count]]
-  DF_test <- list_DF_test[[count]]
+  DF <- list_DF_randCens[[count]]
+  DF_test <- list_DF_test_randCens[[count]]
   
   ## Checking % of censoring
   perc_cens_train[count] <- sum(DF$event==0)/n
@@ -139,16 +128,6 @@ for(count in 1:repl){
   try(n_event_train_2[count] <- brier_score_multi_train_2$nint)
   try(n_cens_train_2[count] <- brier_score_multi_train_2$ncens)
   
-  ## EPCE in (6,7.5]:
-  try(EPCE_score_multi_train <- tvEPCE(multiJM, newdata = DF, Tstart = t0, Dt = dt,
-                                       eps = 0.001))
-  try(epce_train[count] <- EPCE_score_multi_train$EPCE)
-  
-  ## EPCE in (4,5.5]:
-  try(EPCE_score_multi_train_2 <- tvEPCE(multiJM, newdata = DF, Tstart = t0_2, Dt = dt_2,
-                                         eps = 0.001))
-  try(epce_train_2[count] <- EPCE_score_multi_train_2$EPCE)
-  
   ## IBS in test in (6,7.5]:
   try(brier_score_multi_test <- tvBrier(multiJM, newdata = DF_test, Tstart = t0, Dt = dt, 
                                         integrated = TRUE, type_weights = "IPCW"))
@@ -164,17 +143,6 @@ for(count in 1:repl){
   try(n_risk_test_2[count] <- brier_score_multi_test_2$nr)
   try(n_event_test_2[count] <- brier_score_multi_test_2$nint)
   try(n_cens_test_2[count] <- brier_score_multi_test_2$ncens)
-  
-  ##EPCE in test in (6,7.5]:
-  try(EPCE_score_multi_test <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0, Dt = dt,
-                                      eps = 0.001))
-  try(epce_test[count] <- EPCE_score_multi_test$EPCE)
-  
-  ##EPCE in test in (4,5.5]:
-  try(EPCE_score_multi_test_2 <- tvEPCE(multiJM, newdata = DF_test, Tstart = t0_2, Dt = dt_2,
-                                        eps = 0.001))
-  try(epce_test_2[count] <- EPCE_score_multi_test_2$EPCE)
-  
   
   #SuperLearning with the library of models built with the univariate JM
   
@@ -215,16 +183,6 @@ for(count in 1:repl){
                                  integrated = TRUE, Tstart = t0_2, Dt = dt_2,
                                  type_weights = "IPCW"))
   
-  ## EPCE for CV data in (6,7.5]:
-  try(EPCE_weights <- tvEPCE(Models_folds, newdata = CVdats$testing, 
-                             Tstart = t0, Dt = dt,
-                             eps = 0.001))
-  
-  ## EPCE for CV data in (4,5.5]:
-  try(EPCE_weights_2 <- tvEPCE(Models_folds, newdata = CVdats$testing, 
-                               Tstart = t0_2, Dt = dt_2,
-                               eps = 0.001))
-  
   #Now with testing data
   #We fit the models in the whole training data set and test in testing data
   try(Models <- fit_models(DF))
@@ -240,18 +198,6 @@ for(count in 1:repl){
   try(Brier_weights_test_2 <- tvBrier(Models, newdata = DF_test, model_weights = bw_2, 
                                       Tstart = t0_2, Dt = dt_2, integrated = TRUE,
                                       type_weights = "IPCW"))
-  
-  ## EPCE in (6,7.5]
-  try(ew <- EPCE_weights$weights)
-  try(EPCE_weights_test <- tvEPCE(Models, newdata = DF_test, model_weights = ew,
-                                  Tstart = t0, Dt = dt,
-                                  eps = 0.001))
-  
-  ## EPCE in (4,5.5]
-  try(ew_2 <- EPCE_weights_2$weights)
-  try(EPCE_weights_test_2 <- tvEPCE(Models, newdata = DF_test, model_weights = ew_2,
-                                    Tstart = t0_2, Dt = dt_2,
-                                    eps = 0.001))
   
   ## IBS in (6,7.5]:
   disSL_ibs[count] <- 0
@@ -295,192 +241,127 @@ for(count in 1:repl){
                                     type_weights = "IPCW"))
   } 
   
-  ## EPCE in (6,7.5]:
-  disSL_epce[count] <- 0
-  try(disSL_epce[count] <- which.min(EPCE_weights$EPCE_per_model))
-  if(disSL_epce[count] == 1){
-    try(EPCE_dSL_test <- tvEPCE(Models$M1, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
-                                eps = 0.001))
-  } else if(disSL_epce[count] == 2){
-    try(EPCE_dSL_test <- tvEPCE(Models$M2, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
-                                eps = 0.001))
-  } else if(disSL_epce[count] == 3){
-    try(EPCE_dSL_test <- tvEPCE(Models$M3, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
-                                eps = 0.001))
-  } else if(disSL_epce[count] == 4){
-    try(EPCE_dSL_test <- tvEPCE(Models$M4, newdata = DF_test,
-                                Tstart = t0, Dt = dt,
-                                eps = 0.001))
-  } 
-  
-  ## EPCE in (4,5.5]:
-  disSL_epce_2[count] <- 0
-  try(disSL_epce_2[count] <- which.min(EPCE_weights_2$EPCE_per_model))
-  if(disSL_epce_2[count] == 1){
-    try(EPCE_dSL_test_2 <- tvEPCE(Models$M1, newdata = DF_test,
-                                  Tstart = t0_2, Dt = dt_2,
-                                  eps = 0.001))
-  } else if(disSL_epce_2[count] == 2){
-    try(EPCE_dSL_test_2 <- tvEPCE(Models$M2, newdata = DF_test,
-                                  Tstart = t0_2, Dt = dt_2,
-                                  eps = 0.001))
-  } else if(disSL_epce_2[count] == 3){
-    try(EPCE_dSL_test_2 <- tvEPCE(Models$M3, newdata = DF_test,
-                                  Tstart = t0_2, Dt = dt_2,
-                                  eps = 0.001))
-  } else if(disSL_epce_2[count] == 4){
-    try(EPCE_dSL_test_2 <- tvEPCE(Models$M4, newdata = DF_test,
-                                  Tstart = t0_2, Dt = dt_2,
-                                  eps = 0.001))
-  } 
-  
   ########################
   #Save the desired metrics
   ###########################
   
   ## saving metrics for the interval (6,7.5]:
   try(IBS_univ[count, ] <- Brier_weights$Brier_per_model)
-  try(EPCE_univ[count, ] <- EPCE_weights$EPCE_per_model)
+
   try(IBS_w[count, ] <- Brier_weights$weights)
-  try(EPCE_w[count, ] <- EPCE_weights$weights)
+
   try(dSL_cv_IBS[count] <- min(Brier_weights$Brier_per_model))
-  try(dSL_cv_EPCE[count] <- min(EPCE_weights$EPCE_per_model))
+
   try(eSL_cv_IBS[count] <- Brier_weights$Brier)
-  try(eSL_cv_EPCE[count] <- EPCE_weights$EPCE)
+
   try(eSL_test_IBS[count] <- Brier_weights_test$Brier)
-  try(eSL_test_EPCE[count] <- EPCE_weights_test$EPCE)
+
   try(dSL_test_IBS[count] <- Brier_dSL_test$Brier)
-  try(dSL_test_EPCE[count] <- EPCE_dSL_test$EPCE)
+
   
   ## saving metrics for the interval (4,5.5]:
   try(IBS_univ_2[count, ] <- Brier_weights_2$Brier_per_model)
-  try(EPCE_univ_2[count, ] <- EPCE_weights_2$EPCE_per_model)
+
   try(IBS_w_2[count, ] <- Brier_weights_2$weights)
-  try(EPCE_w_2[count, ] <- EPCE_weights_2$weights)
+
   try(dSL_cv_IBS_2[count] <- min(Brier_weights_2$Brier_per_model))
-  try(dSL_cv_EPCE_2[count] <- min(EPCE_weights_2$EPCE_per_model))
+
   try(eSL_cv_IBS_2[count] <- Brier_weights_2$Brier)
-  try(eSL_cv_EPCE_2[count] <- EPCE_weights_2$EPCE)
+
   try(eSL_test_IBS_2[count] <- Brier_weights_test_2$Brier)
-  try(eSL_test_EPCE_2[count] <- EPCE_weights_test_2$EPCE)
+
   try(dSL_test_IBS_2[count] <- Brier_dSL_test_2$Brier)
-  try(dSL_test_EPCE_2[count] <- EPCE_dSL_test_2$EPCE)
+
   
   
   try(if(count==10){
-    str10 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl10_randCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    str10 <- "G:/TFM/SLinJointModels/MFPCA_simuls/results/repl10_randCens_30_2apr2025.RData"
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
          ibs_train, ibs_test, 
          IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
          dSL_test_IBS, disSL_ibs, 
-         epce_train, epce_test,
-         EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
-         disSL_epce,
          n_risk_train_2, n_risk_test_2, n_event_train_2, n_event_test_2,
          n_cens_train_2, n_cens_test_2,
          ibs_train_2, ibs_test_2, 
          IBS_univ_2, IBS_w_2, dSL_cv_IBS_2, eSL_test_IBS_2, eSL_cv_IBS_2,
          dSL_test_IBS_2, disSL_ibs_2, 
-         epce_train_2, epce_test_2,
-         EPCE_univ_2, EPCE_w_2, dSL_cv_EPCE_2, eSL_cv_EPCE_2, dSL_test_EPCE_2, eSL_test_EPCE_2,
-         disSL_epce_2,
          file=str10)
   })
-  try(if(count==25){
-    str25 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl25_randCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
-         list_rhats_MJM, list_full_rhats_MJM, 
-         n_risk_train, n_risk_test, n_event_train, n_event_test,
-         n_cens_train, n_cens_test,
-         ibs_train, ibs_test, 
-         IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
-         dSL_test_IBS, disSL_ibs, 
-         epce_train, epce_test,
-         EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
-         disSL_epce,
-         n_risk_train_2, n_risk_test_2, n_event_train_2, n_event_test_2,
-         n_cens_train_2, n_cens_test_2,
-         ibs_train_2, ibs_test_2, 
-         IBS_univ_2, IBS_w_2, dSL_cv_IBS_2, eSL_test_IBS_2, eSL_cv_IBS_2,
-         dSL_test_IBS_2, disSL_ibs_2, 
-         epce_train_2, epce_test_2,
-         EPCE_univ_2, EPCE_w_2, dSL_cv_EPCE_2, eSL_cv_EPCE_2, dSL_test_EPCE_2, eSL_test_EPCE_2,
-         disSL_epce_2,
-         file=str25)
-  })
+  #try(if(count==25){
+  #  str25 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl25_randCens_30_2apr2025.RData"
+  #  save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+  #       list_rhats_MJM, list_full_rhats_MJM, 
+  #       n_risk_train, n_risk_test, n_event_train, n_event_test,
+  #       n_cens_train, n_cens_test,
+  #       ibs_train, ibs_test, 
+  #       IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
+  #       dSL_test_IBS, disSL_ibs, 
+  #       epce_train, epce_test,
+  #       EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
+  #       disSL_epce,
+  #       n_risk_train_2, n_risk_test_2, n_event_train_2, n_event_test_2,
+  #       n_cens_train_2, n_cens_test_2,
+  #       ibs_train_2, ibs_test_2, 
+  #       IBS_univ_2, IBS_w_2, dSL_cv_IBS_2, eSL_test_IBS_2, eSL_cv_IBS_2,
+  #       dSL_test_IBS_2, disSL_ibs_2, 
+  #       epce_train_2, epce_test_2,
+  #       EPCE_univ_2, EPCE_w_2, dSL_cv_EPCE_2, eSL_cv_EPCE_2, dSL_test_EPCE_2, eSL_test_EPCE_2,
+  #       disSL_epce_2,
+  #       file=str25)
+  #})
   try(if(count==50){
-    str50 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl50_randCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    str50 <- "G:/TFM/SLinJointModels/MFPCA_simuls/results/repl50_randCens_30_2apr2025.RData"
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
          ibs_train, ibs_test, 
          IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
          dSL_test_IBS, disSL_ibs, 
-         epce_train, epce_test,
-         EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
-         disSL_epce,
          n_risk_train_2, n_risk_test_2, n_event_train_2, n_event_test_2,
          n_cens_train_2, n_cens_test_2,
          ibs_train_2, ibs_test_2, 
          IBS_univ_2, IBS_w_2, dSL_cv_IBS_2, eSL_test_IBS_2, eSL_cv_IBS_2,
          dSL_test_IBS_2, disSL_ibs_2, 
-         epce_train_2, epce_test_2,
-         EPCE_univ_2, EPCE_w_2, dSL_cv_EPCE_2, eSL_cv_EPCE_2, dSL_test_EPCE_2, eSL_test_EPCE_2,
-         disSL_epce_2,
          file=str50)
   })
   try(if(count==75){
-    str75 <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl75_randCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    str75 <- "G:/TFM/SLinJointModels/MFPCA_simuls/results/repl75_randCens_30_2apr2025.RData"
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
          ibs_train, ibs_test, 
          IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
          dSL_test_IBS, disSL_ibs, 
-         epce_train, epce_test,
-         EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
-         disSL_epce,
          n_risk_train_2, n_risk_test_2, n_event_train_2, n_event_test_2,
          n_cens_train_2, n_cens_test_2,
          ibs_train_2, ibs_test_2, 
          IBS_univ_2, IBS_w_2, dSL_cv_IBS_2, eSL_test_IBS_2, eSL_cv_IBS_2,
          dSL_test_IBS_2, disSL_ibs_2, 
-         epce_train_2, epce_test_2,
-         EPCE_univ_2, EPCE_w_2, dSL_cv_EPCE_2, eSL_cv_EPCE_2, dSL_test_EPCE_2, eSL_test_EPCE_2,
-         disSL_epce_2,
          file=str75)
   })
   
   if(count == repl){
-    strr <- "D:/La meva unitat/TFM/MFPCA_simuls/results/repl100_randCens_30_2apr2025.RData"
-    save(checkTimes_test, checkTimes, perc_cens_test, perc_cens_train,
+    strr <- "G:/TFM/SLinJointModels/MFPCA_simuls/results/repl100_randCens_30_2apr2025.RData"
+    save(perc_cens_test, perc_cens_train,
          list_rhats_MJM, list_full_rhats_MJM, 
          n_risk_train, n_risk_test, n_event_train, n_event_test,
          n_cens_train, n_cens_test,
          ibs_train, ibs_test, 
          IBS_univ, IBS_w, dSL_cv_IBS, eSL_test_IBS, eSL_cv_IBS,
          dSL_test_IBS, disSL_ibs, 
-         epce_train, epce_test,
-         EPCE_univ, EPCE_w, dSL_cv_EPCE, eSL_cv_EPCE, dSL_test_EPCE, eSL_test_EPCE,
-         disSL_epce,
          n_risk_train_2, n_risk_test_2, n_event_train_2, n_event_test_2,
          n_cens_train_2, n_cens_test_2,
          ibs_train_2, ibs_test_2, 
          IBS_univ_2, IBS_w_2, dSL_cv_IBS_2, eSL_test_IBS_2, eSL_cv_IBS_2,
          dSL_test_IBS_2, disSL_ibs_2, 
-         epce_train_2, epce_test_2,
-         EPCE_univ_2, EPCE_w_2, dSL_cv_EPCE_2, eSL_cv_EPCE_2, dSL_test_EPCE_2, eSL_test_EPCE_2,
-         disSL_epce_2,
          file=strr)
   }
   
   print(count)
 }
+
