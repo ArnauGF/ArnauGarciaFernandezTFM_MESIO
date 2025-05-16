@@ -74,13 +74,14 @@ for(count in 1:repl){
   # we set DF ans DF_test to the corresponding element of the list
   DF <- list_DF_adminCens[[count]]
   DF_test <- list_DF_test_adminCens[[count]]
-
-  ## Checking % of censoring
-  perc_cens_train[count] <- sum(DF$event==0)/n
-  perc_cens_test[count] <- sum(DF_test$event==0)/n_test
   
   DF.id <- DF[!duplicated(DF$id),]
   DF_test.id <- DF_test[!duplicated(DF_test$id),] 
+  
+  ## Checking % of censoring
+  perc_cens_train[count] <- sum(DF.id$event==0)/n
+  perc_cens_test[count] <- sum(DF_test.id$event==0)/n_test
+  
   ## Survival model
   try(CoxFit <- coxph(Surv(Time, event) ~ sex, data = DF.id))
   
