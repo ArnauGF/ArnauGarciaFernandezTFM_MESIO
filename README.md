@@ -1,6 +1,6 @@
 # Dynamic prediction for multivariate longitudinal and time-to-event data using super learning and multivariate functional principal component analysis-based methods
 
-This is a public repository containing the different documents related to Arnau Garcia's master thesis in the MESIO UPC. In this repository you will find both code files and pdf documents with the reports that were made in the course of the work.
+This is a public repository containing the different documents related to Arnau Garcia's master's thesis for the [Master's degree in Statistics and Operations Research (MESIO) UPC]{https://mesioupcub.masters.upc.edu/en?set_language=en}. In this repository you will find both code files and pdf documents with the reports that were made in the course of the work.
 
 ## Rpository structure
 
@@ -8,7 +8,9 @@ This is a public repository containing the different documents related to Arnau 
 
   * `SL_1stReport.pdf`, `SL_2ndReport.pdf`, `SL_3rdReport.pdf`
   * `multi_longitudinal_data_MMvsMFPCA.pdf`
-    Accompanying presentation slides are included in:
+  
+    Presentation slides are included in:
+    
   * `slides_SLinJM_meeting1.pdf`
   * `slides_SLinJM_meeting2.pdf`
 
